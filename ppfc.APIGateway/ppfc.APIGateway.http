@@ -1,0 +1,6 @@
+@ppfc.APIGateway_HostAddress = http://localhost:5114
+
+GET {{ppfc.APIGateway_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

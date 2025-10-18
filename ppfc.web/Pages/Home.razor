@@ -1,0 +1,259 @@
+﻿@page "/home"
+@attribute [Authorize]
+@using System
+@using System.Globalization
+@using Radzen
+@using Radzen.Blazor
+
+<RadzenStack class="rz-p-0">
+    <!-- Controls -->
+    <!-- Area & Bar charts -->
+    <RadzenRow>
+        <RadzenColumn SizeLG="12">
+            <h2> Branch / Area Manager Dashboard</h2>
+        </RadzenColumn>
+    </RadzenRow>
+    <RadzenRow>
+        <RadzenColumn Size="12" SizeLG="12">
+
+            <h4>Collection Trends</h4>
+
+            <RadzenCard Variant="Variant.Filled">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                    <RadzenCheckBox @bind-Value="showDataLabels" Id="@dataLabelsId" Name="@dataLabelsId" />
+                    <RadzenLabel Text="Show Data Labels" Component="@dataLabelsId" />
+                </RadzenStack>
+                <RadzenChart SeriesClick="@OnSeriesClick" style="height:360px;">
+                    <RadzenAreaSeries Data="@revenue2024"
+                                      CategoryProperty="Date"
+                                      ValueProperty="Revenue"
+                                      Title="2024"
+                                      Smooth="@smooth"
+                                      LineType="LineType.Dashed">
+                        <RadzenSeriesDataLabels Visible="@showDataLabels" />
+                        <RadzenChartTooltip />
+                    </RadzenAreaSeries>
+
+                    <RadzenAreaSeries Data="@revenue2023"
+                                      CategoryProperty="Date"
+                                      ValueProperty="Revenue"
+                                      Title="2023"
+                                      Smooth="@smooth">
+                        <RadzenSeriesDataLabels Visible="@showDataLabels" />
+                        <RadzenChartTooltip />
+                    </RadzenAreaSeries>
+
+                    <RadzenCategoryAxis Padding="-10" LabelAutoRotation="-45" />
+                    <RadzenValueAxis Formatter="@FormatAsUSD">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Revenue in Rupees" />
+                    </RadzenValueAxis>
+                </RadzenChart>
+            </RadzenCard>
+        </RadzenColumn>
+
+
+    </RadzenRow>
+
+    <!-- Donut / Pie -->
+
+    <RadzenRow style="margin-top:1rem;">
+
+        <RadzenColumn Size="12" SizeLG="6">
+            <h4>Recovery %</h4>
+            <RadzenCard Variant="Variant.Filled">
+
+                <RadzenStack class="rz-p-0 rz-p-md-6 rz-p-lg-8" AlignItems="AlignItems.Center">
+                    @* <RadzenCard Variant="Variant.Filled">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                <RadzenLabel Text="Tick position" Component="tickPositionDropDown" />
+                <RadzenDropDown Name="tickPositionDropDown" @bind-Value=@tickPosition Data=@tickPositions Style="width: 200px;" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                <RadzenLabel Text="Value" Component="valueSlider" />
+                <RadzenSlider Name="valueSlider" Min="0" Max="100" @bind-Value=@value Style="width: 200px;" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                <RadzenCheckBox @bind-Value=@showValue Name="showPointerValue"/>
+                <RadzenLabel Text="Show the pointer value" Component="showPointerValue" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenCard> *@
+
+                    <RadzenArcGauge Style="width: 100%; height: 250px;">
+                        <RadzenArcGaugeScale Step="20" Min="0" Max="100" MinorStep="4" Radius="1.5" TickPosition=@tickPosition Y="0.9" Margin="0">
+                            <RadzenArcGaugeScaleValue Value=@value ShowValue=@showValue>
+                                <Template Context="pointer">
+                                    <RadzenStack AlignItems="AlignItems.Center" Gap="0" Style="margin-top: -50%;">
+                                        <RadzenText TextStyle="TextStyle.H1" class="rz-m-0"><strong>@pointer.Value</strong></RadzenText>
+                                        <RadzenText TextStyle="TextStyle.Caption">-5</RadzenText>
+                                    </RadzenStack>
+                                </Template>
+                            </RadzenArcGaugeScaleValue>
+                        </RadzenArcGaugeScale>
+                    </RadzenArcGauge>
+
+                </RadzenStack>
+
+            </RadzenCard>
+        </RadzenColumn>
+
+        <RadzenColumn Size="12" SizeLG="6">
+            <h4>EMI Overdue Accounts</h4>
+            <RadzenStack Style="width:100%; max-width:900px; margin-top:1rem;">
+                <RadzenCard Variant="Variant.Filled">
+
+                    <RadzenChart SeriesClick="@OnSeriesClick">
+                        <RadzenDonutSeries Data="@revenue"
+                                           CategoryProperty="Quarter"
+                                           ValueProperty="Revenue"
+                                           TotalAngle="360"
+                                           StartAngle="0">
+                            <RadzenSeriesDataLabels Visible="@showDataLabels" />
+                            <RadzenChartTooltip />
+                        </RadzenDonutSeries>
+                    </RadzenChart>
+                </RadzenCard>
+            </RadzenStack>
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenRow style="margin-top:1rem;">
+        <RadzenColumn Size="12" SizeLG="12">
+            <h4>Staff Performance (Collections)</h4>
+            <RadzenCard Variant="Variant.Filled">
+                <RadzenChart SeriesClick="@OnSeriesClick" style="height:360px;">
+                    <RadzenBarSeries Data="@revenue2024_quarter"
+                                     CategoryProperty="Quarter"
+                                     Title="2024"
+                                     ValueProperty="Revenue"
+                                     LineType="LineType.Dashed">
+                        <RadzenSeriesDataLabels Visible="@showDataLabels" />
+                    </RadzenBarSeries>
+
+                    <RadzenBarSeries Data="@revenue2023_quarter"
+                                     CategoryProperty="Quarter"
+                                     Title="2023"
+                                     ValueProperty="Revenue">
+                        <RadzenSeriesDataLabels Visible="@showDataLabels" />
+                    </RadzenBarSeries>
+
+                    <RadzenValueAxis Formatter="@FormatAsUSD">
+                        <RadzenGridLines Visible="true" />
+                    </RadzenValueAxis>
+
+                    <RadzenBarOptions Radius="5" Height="20" />
+                </RadzenChart>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
+</RadzenStack>
+
+@code {
+    // UI flags
+    private bool smooth = false;
+    private bool showDataLabels = false;
+
+    // unique ids
+    private readonly string dataLabelsId = "dataLabels_" + Guid.NewGuid().ToString("N");
+    private readonly string smoothId = "smooth_" + Guid.NewGuid().ToString("N");
+
+    // internal delegate fields (assigned in OnInitialized)
+    private Func<object, string>? pointTooltip;
+    private Func<object, string>? quarterTooltip;
+
+    // Models
+    public class DataItem { public string Date { get; set; } = string.Empty; public double Revenue { get; set; } }
+    public class RevenueItem { public string Quarter { get; set; } = string.Empty; public double Revenue { get; set; } }
+
+    // Sample data
+    private DataItem[] revenue2023 = new[] {
+        new DataItem { Date = "Jan", Revenue = 234000 },
+        new DataItem { Date = "Feb", Revenue = 269000 },
+        new DataItem { Date = "Mar", Revenue = 233000 },
+        new DataItem { Date = "Apr", Revenue = 233000 },
+        new DataItem { Date = "May", Revenue = 433000 },
+        new DataItem { Date = "Jun", Revenue = 333000 },
+        new DataItem { Date = "Jul", Revenue = 533000 },
+        new DataItem { Date = "Aug", Revenue = 363000 },
+        new DataItem { Date = "Sep", Revenue = 393000 },
+        new DataItem { Date = "Oct", Revenue = 423000 },
+        new DataItem { Date = "Nov", Revenue = 453000 },
+        new DataItem { Date = "Dec", Revenue = 483000 }
+    };
+
+    private DataItem[] revenue2024 = new[] {
+        new DataItem { Date = "Jan", Revenue = 334000 },
+    new DataItem { Date = "Feb", Revenue = 369000 },
+    new DataItem { Date = "Mar", Revenue = 333000 },
+    new DataItem { Date = "Apr", Revenue = 433000 },
+    new DataItem { Date = "May", Revenue = 463000 },
+    new DataItem { Date = "Jun", Revenue = 483000 },
+    new DataItem { Date = "Jul", Revenue = 513000 },
+    new DataItem { Date = "Aug", Revenue = 543000 },
+    new DataItem { Date = "Sep", Revenue = 573000 },
+    new DataItem { Date = "Oct", Revenue = 603000 },
+    new DataItem { Date = "Nov", Revenue = 633000 },
+    new DataItem { Date = "Dec", Revenue = 663000 }
+    };
+
+    private RevenueItem[] revenue = new[] {
+        new RevenueItem { Quarter="Q1", Revenue=30000 },
+        new RevenueItem { Quarter="Q2", Revenue=40000 },
+        new RevenueItem { Quarter="Q3", Revenue=50000 },
+        new RevenueItem { Quarter="Q4", Revenue=80000 }
+    };
+
+    private RevenueItem[] revenue2023_quarter = new[] {
+        new RevenueItem{ Quarter="Q1", Revenue=234000 }, new RevenueItem{ Quarter="Q2", Revenue=284000 },
+        new RevenueItem{ Quarter="Q3", Revenue=274000 }, new RevenueItem{ Quarter="Q4", Revenue=294000 }
+    };
+
+    private RevenueItem[] revenue2024_quarter = new[] {
+        new RevenueItem{ Quarter="Q1", Revenue=254000 }, new RevenueItem{ Quarter="Q2", Revenue=324000 },
+        new RevenueItem{ Quarter="Q3", Revenue=354000 }, new RevenueItem{ Quarter="Q4", Revenue=394000 }
+    };
+
+    protected override void OnInitialized()
+    {
+        // assign delegates to avoid Razor parsing of inline lambdas
+        pointTooltip = FormatPointTooltip;
+        quarterTooltip = FormatQuarterTooltip;
+    }
+
+    // Formatter for axis
+    private string FormatAsUSD(object value)
+    {
+        if (value is double d) return d.ToString("C0", CultureInfo.CreateSpecificCulture("en-IN"));
+        if (double.TryParse(value?.ToString(), out var parsed)) return parsed.ToString("C0", CultureInfo.CreateSpecificCulture("en-IN"));
+        return value?.ToString() ?? string.Empty;
+    }
+
+    // tooltip implementations
+    private string FormatPointTooltip(object data)
+    {
+        if (data is DataItem di) return $"{di.Date}: {di.Revenue.ToString("C0", CultureInfo.CreateSpecificCulture("en-US"))}";
+        if (data is RevenueItem ri) return $"{ri.Quarter}: {ri.Revenue.ToString("C0", CultureInfo.CreateSpecificCulture("en-US"))}";
+        return data?.ToString() ?? string.Empty;
+    }
+
+    private string FormatQuarterTooltip(object data)
+    {
+        if (data is RevenueItem ri) return $"{ri.Quarter}: {ri.Revenue.ToString("C0", CultureInfo.CreateSpecificCulture("en-US"))}";
+        if (data is DataItem di) return $"{di.Date}: {di.Revenue.ToString("C0", CultureInfo.CreateSpecificCulture("en-US"))}";
+        return data?.ToString() ?? string.Empty;
+    }
+
+    private void OnSeriesClick(SeriesClickEventArgs args)
+    {
+        // debug: write to server console
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(args));
+    }
+
+
+    bool showValue = true;
+    double value = 85;
+    IEnumerable<GaugeTickPosition> tickPositions = Enum.GetValues(typeof(GaugeTickPosition)).Cast<GaugeTickPosition>();
+    GaugeTickPosition tickPosition = GaugeTickPosition.Outside;
+}

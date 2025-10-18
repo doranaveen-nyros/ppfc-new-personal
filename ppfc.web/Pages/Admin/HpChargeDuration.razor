@@ -1,0 +1,193 @@
+@page "/admin/hpchargeduration"
+@using Radzen
+@using Radzen.Blazor
+@attribute [Authorize]
+@inject NotificationService NotificationService
+
+<h3 class="text-left mb-3">HP Charge Master</h3>
+
+<div>
+  <RadzenDataGrid @ref="grid" TItem="HpChargeRecord" Data="Records" EditMode="DataGridEditMode.Single"
+    AllowPaging="false">
+    <Columns>
+      <RadzenDataGridColumn TItem="HpChargeRecord" Property="FromDate" Title="From Date" Width="180px">
+        <Template Context="item">
+          @(item.FromDate.HasValue? item.FromDate.Value.ToString("dd-MMM-yyyy") : "-")
+        </Template>
+        <EditTemplate Context="item">
+          <RadzenDatePicker @bind-Value="editItem.FromDate" Style="width:100%" TValue="DateTime ?" />
+        </EditTemplate>
+      </RadzenDataGridColumn>
+
+      <RadzenDataGridColumn TItem="HpChargeRecord" Property="ToDate" Title="To Date" Width="180px">
+        <Template Context="item">
+          @(item.ToDate.HasValue? item.ToDate.Value.ToString("dd-MMM-yyyy") : "-")
+        </Template>
+        <EditTemplate Context="item">
+          <RadzenDatePicker @bind-Value="editItem.ToDate" Style="width:100%" TValue="DateTime ?" />
+        </EditTemplate>
+      </RadzenDataGridColumn>
+
+      <RadzenDataGridColumn TItem="HpChargeRecord" Property="HpChargeInst" Title="HP Charge Inst's" Width="150px">
+        <Template Context="item">
+          @(item.HpChargeInst.HasValue? item.HpChargeInst.Value.ToString() : "-")
+        </Template>
+        <EditTemplate Context="item">
+          <RadzenNumeric @bind-Value="editItem.HpChargeInst" Min="0" Style="width:100%" />
+        </EditTemplate>
+      </RadzenDataGridColumn>
+
+      <RadzenDataGridColumn TItem="HpChargeRecord" Title="Actions" Width="140px">
+        <Template Context="item">
+          <RadzenButton Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+            Click="@(args => EditRow(item))" />
+        </Template>
+
+        <EditTemplate Context="item">
+          <RadzenButton Icon="save" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Primary"
+            Click="@(args => SaveRow(item))" Style="margin-right:8px" />
+          <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
+            Click="@(args => DeleteRow(item))" Style="margin-right:8px" />
+          <RadzenButton Icon="close" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+            Click="@(args => CancelEdit(item))" />
+        </EditTemplate>
+      </RadzenDataGridColumn>
+    </Columns>
+  </RadzenDataGrid>
+</div>
+
+@code {
+  private RadzenDataGrid<HpChargeRecord> grid;
+
+  // Initial sample data (replace with API/DB calls as needed)
+  private List<HpChargeRecord> Records = new List<HpChargeRecord>
+{
+new HpChargeRecord
+{
+FromDate = new DateTime(1990,1,1),
+ToDate = new DateTime(2026,12,31),
+HpChargeInst = 6
+}
+};
+
+  // temporary edit model (includes nullable types so empty fields are allowed during edit)
+  private EditHpChargeItem editItem = new EditHpChargeItem();
+
+  private void EditRow(HpChargeRecord item)
+  {
+    // copy to edit model so we don't modify the original until Save
+    editItem = new EditHpChargeItem
+    {
+      FromDate = item.FromDate,
+      ToDate = item.ToDate,
+      HpChargeInst = item.HpChargeInst
+    };
+
+    grid.EditRow(item);
+  }
+
+  private async Task SaveRow(HpChargeRecord item)
+  {
+    // basic validation
+    if (!editItem.FromDate.HasValue || !editItem.ToDate.HasValue)
+    {
+      NotificationService.Notify(new NotificationMessage
+      {
+        Severity = NotificationSeverity.Warning,
+        Summary = "Validation",
+        Detail = "Please enter both From Date and To Date.",
+        Duration = 4000
+      });
+      return;
+    }
+
+    if (editItem.FromDate > editItem.ToDate)
+    {
+      NotificationService.Notify(new NotificationMessage
+      {
+        Severity = NotificationSeverity.Warning,
+        Summary = "Validation",
+        Detail = "From Date cannot be later than To Date.",
+        Duration = 4000
+      });
+      return;
+    }
+
+    // copy back into underlying record (persistence to server can be added here)
+    item.FromDate = editItem.FromDate;
+    item.ToDate = editItem.ToDate;
+    item.HpChargeInst = editItem.HpChargeInst;
+
+    try
+    {
+      await grid.UpdateRow(item);
+
+      // exit edit mode and refresh
+      grid.CancelEditRow(item);
+      await grid.Reload();
+
+      NotificationService.Notify(new NotificationMessage
+      {
+        Severity = NotificationSeverity.Success,
+        Summary = "Saved",
+        Detail = "Record saved successfully.",
+        Duration = 3000
+      });
+    }
+    catch (Exception ex)
+    {
+      NotificationService.Notify(new NotificationMessage
+      {
+        Severity = NotificationSeverity.Error,
+        Summary = "Error",
+        Detail = ex.Message,
+        Duration = 5000
+      });
+    }
+  }
+
+  private async Task CancelEdit(HpChargeRecord item)
+  {
+    grid.CancelEditRow(item);
+
+    // If the row was newly inserted and empty you could remove it here.
+    await Task.Yield();
+    StateHasChanged();
+  }
+
+  private async Task DeleteRow(HpChargeRecord item)
+  {
+    // if this row is in edit mode, cancel first
+    try { grid.CancelEditRow(item); } catch { }
+
+    if (Records.Contains(item))
+    {
+      Records.Remove(item);
+      await grid.Reload();
+
+      NotificationService.Notify(new NotificationMessage
+      {
+        Severity = NotificationSeverity.Info,
+        Summary = "Deleted",
+        Detail = "Record deleted.",
+        Duration = 3000
+      });
+    }
+  }
+
+
+  // Data models
+  public class HpChargeRecord
+  {
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
+    public int? HpChargeInst { get; set; }
+  }
+
+  public class EditHpChargeItem
+  {
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
+    public int? HpChargeInst { get; set; }
+  }
+}

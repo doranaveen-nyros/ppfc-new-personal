@@ -1,0 +1,147 @@
+@page "/admin/messageboard"
+@using Radzen
+@using Radzen.Blazor
+@attribute [Authorize]
+@inject NotificationService NotificationService
+
+<h3 class="text-start mb-4">Message Board</h3>
+    <div class="d-flex justify-content-between mb-2">
+        <div></div>
+    <RadzenButton Icon="add_circle" Text="Add New Message" Click="AddNew" class="rz-ripple"
+                  ButtonStyle="ButtonStyle.Secondary" Style="margin-bottom:6px" />
+    </div>
+
+    <RadzenDataGrid @ref="grid" TItem="MessageRecord" Data="MessageList"
+                    EditMode="DataGridEditMode.Single" AllowPaging="true"
+                    PageSize="10" AllowSorting="true" AllowFiltering="false" PagerHorizontalAlign="HorizontalAlign.Right">
+        <Columns>
+            <RadzenDataGridColumn TItem="MessageRecord" Property="MessageText" Title="Message">
+                <EditTemplate Context="msg">
+                    <RadzenTextArea @bind-Value="editItem.MessageText"
+                                    Style="width:100%; min-height:60px;" />
+                </EditTemplate>
+                <Template Context="msg">
+                    @msg.MessageText
+                </Template>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="MessageRecord" Title="Actions" Width="150px">
+                <Template Context="msg">
+                    <RadzenButton Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                  Click="@(args => EditRow(msg))" Style="margin-right:6px" />
+                    <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
+                                  Click="@(args => DeleteMessage(msg))" />
+                </Template>
+                <EditTemplate Context="msg">
+                    <RadzenButton Icon="save" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Primary"
+                                  Click="@(args => SaveRow(msg))" Style="margin-right:6px" />
+                    <RadzenButton Icon="close" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                  Click="@(args => CancelEdit(msg))" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+<RadzenNotification />
+@code {
+    private RadzenDataGrid<MessageRecord> grid;
+
+    private List<MessageRecord> MessageList = new List<MessageRecord>
+    {
+        new MessageRecord { MessageText = "CONGRATS 2015 * BANGKOK TRIP ACHIEVERS * SRINIVAS RJY, KUMAR GUNTUR, KRISHNA MOHAN JRG, PRASAD AMP." },
+        new MessageRecord { MessageText = "\"NAZVIEEDU\" NEW BRANCH OPENED." },
+        new MessageRecord { MessageText = "\"PARAVATHI PURAM\" NEW BRANCH OPENED." },
+        new MessageRecord { MessageText = "\"ONGOLE\" NEW BRANCH OPENED." }
+    };
+
+    private EditMessageItem editItem = new EditMessageItem();
+
+    private async Task AddNew()
+    {
+        var newMsg = new MessageRecord();
+        MessageList.Insert(0, newMsg);
+        await grid.Reload();
+        await Task.Yield();
+        grid.EditRow(newMsg);
+        editItem = new EditMessageItem();
+    }
+
+    private async Task EditRow(MessageRecord msg)
+    {
+        editItem = new EditMessageItem { MessageText = msg.MessageText };
+        grid.EditRow(msg);
+        await Task.Yield();
+    }
+
+    private async Task SaveRow(MessageRecord msg)
+    {
+        if (string.IsNullOrWhiteSpace(editItem.MessageText))
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Warning,
+                Summary = "Validation",
+                Detail = "Message cannot be empty.",
+                Duration = 3000
+            });
+            return;
+        }
+
+        msg.MessageText = editItem.MessageText;
+
+        await grid.UpdateRow(msg);
+        grid.CancelEditRow(msg);
+        await grid.Reload();
+        StateHasChanged();
+
+        NotificationService.Notify(new NotificationMessage
+        {
+            Severity = NotificationSeverity.Success,
+            Summary = "Saved",
+            Detail = "Message saved successfully.",
+            Duration = 3000
+        });
+    }
+
+    private async Task CancelEdit(MessageRecord msg)
+    {
+        grid.CancelEditRow(msg);
+
+        if (string.IsNullOrWhiteSpace(msg.MessageText))
+        {
+            MessageList.Remove(msg);
+            await grid.Reload();
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task DeleteMessage(MessageRecord msg)
+    {
+        try { grid.CancelEditRow(msg); } catch { }
+
+        if (MessageList.Contains(msg))
+        {
+            MessageList.Remove(msg);
+            await grid.Reload();
+            StateHasChanged();
+
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Info,
+                Summary = "Deleted",
+                Detail = "Message deleted successfully.",
+                Duration = 3000
+            });
+        }
+    }
+
+    public class MessageRecord
+    {
+        public string MessageText { get; set; }
+    }
+
+    public class EditMessageItem
+    {
+        public string MessageText { get; set; }
+    }
+}

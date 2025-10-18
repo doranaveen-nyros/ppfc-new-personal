@@ -1,0 +1,57 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using System.Net.Http.Headers
+@inject ProtectedSessionStorage SessionStorage
+@inject HttpClient Http
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            @if (routeData.PageType == typeof(ppfc.web.Pages.Login))
+            {
+                <!-- Unprotected login route -->
+                <RouteView RouteData="@routeData" DefaultLayout="@typeof(BlankLayout)" />
+            }
+            else
+            {
+                <!-- Protected routes use AuthorizeRouteView -->
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                    <Authorizing>
+                        <LayoutView Layout="@typeof(BlankLayout)">
+                            <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+                                <div class="spinner-border text-primary mb-3" role="status"></div>
+                                <p>Authorizing...</p>
+                            </div>
+                        </LayoutView>
+                    </Authorizing>
+
+                    <NotAuthorized>
+                        <LayoutView Layout="@typeof(BlankLayout)">
+                            <RedirectToLogin />
+                        </LayoutView>
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+            }
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(BlankLayout)">
+                <p role="alert">Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var tokenResult = await SessionStorage.GetAsync<string>("JwtToken");
+        if (tokenResult.Success && !string.IsNullOrEmpty(tokenResult.Value))
+        {
+            Http.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", tokenResult.Value);
+        }
+    }
+}

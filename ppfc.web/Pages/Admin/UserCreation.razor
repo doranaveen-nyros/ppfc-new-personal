@@ -1,0 +1,240 @@
+﻿@page "/admin/usercreation"
+@using System.ComponentModel.DataAnnotations
+@inject IJSRuntime JS
+@using Radzen
+@using Radzen.Blazor
+@inject NotificationService NotificationService
+
+<h3 class="text-left mb-3">Add Users</h3>
+
+ 
+
+
+<div class="d-flex justify-content-between mb-2">
+    <div></div>
+    <RadzenButton Icon="add_circle" Text="Add New" Click="AddNew" Style="margin-bottom:6px" ButtonStyle="ButtonStyle.Secondary" class="rz-ripple" />
+</div>
+
+<RadzenDataGrid @ref="grid" TItem="UserRecord" Data="Users" EditMode="DataGridEditMode.Single" AllowPaging="true" PageSize="10" AllowSorting="true" AllowFiltering="false" PagerHorizontalAlign="HorizontalAlign.Right">
+    <Columns>
+        <RadzenDataGridColumn TItem="UserRecord" Property="EmployeeName" Title="EName">
+            <EditTemplate Context="user">
+                <RadzenDropDown Data="EmployeeNames"
+                                @bind-Value="editItem.EmployeeName"
+                                Style="width:100%"
+                                Placeholder="Select Employee"
+                                AllowClear="true" />
+            </EditTemplate>
+            <Template Context="user">
+                @user.EmployeeName
+            </Template>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="UserRecord" Property="UserName" Title="User Name">
+            <EditTemplate Context="user">
+                <RadzenTextBox Style="width:100%" @bind-Value="editItem.UserName" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="UserRecord" Property="Role" Title="Role">
+            <EditTemplate Context="user">
+                <RadzenDropDown Data="Roles" @bind-Value="editItem.Role" Style="width:100%" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <!-- Password column visible after save; during edit we show password + confirm fields -->
+        <RadzenDataGridColumn TItem="UserRecord" Property="Password" Title="Password">
+            <Template Context="user">
+                @((string.IsNullOrEmpty(user.Password) ? "-" : new string('*', user.Password.Length)))
+            </Template>
+            <EditTemplate Context="user">
+                <div class="mb-2">
+                    <RadzenPassword Style="width:100%" @bind-Value="editItem.Password" Placeholder="Password" />
+                </div>
+                <div>
+                    <RadzenPassword Style="width:100%" @bind-Value="editItem.ConfirmPassword" Placeholder="Confirm Password" />
+                </div>
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="UserRecord" Title="Actions" Width="150px">
+            <Template Context="user">
+                <RadzenButton Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="@(args => EditRow(user))" Style="background:transparent;color: #000;margin-right:6px" />
+                <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger" Click="@(args => DeleteUser(user))" Style="background:transparent;margin-right:6px;color:red" />
+            </Template>
+            <EditTemplate Context="user">
+                <RadzenButton Icon="save" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Primary" Click="@(args => SaveRow(user))" Style="margin-right:6px;" />
+                <RadzenButton Icon="close" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="@(args => CancelEdit(user))" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+<RadzenNotification />
+@code {
+    private RadzenDataGrid<UserRecord> grid;
+    private List<string> EmployeeNames = new List<string>
+    {
+        "ADMIN2",
+        "DURGA PRASAD",
+        "SURYA PRAKASARAO",
+        "SURESH KUMAR",
+        "RAVI TEJA",
+        "RAJESH KUMAR"
+    };
+    private List<UserRecord> Users = new List<UserRecord>
+    {
+        new UserRecord { EmployeeName = "ADMIN2", UserName = "PPFCSURESH", Role = "Admin", Password = "secret1" },
+        new UserRecord { EmployeeName = "DURGA PRASAD", UserName = "PPFCDURGA", Role = "Admin", Password = "secret2" },
+        new UserRecord { EmployeeName = "SURYA PRAKASARAO", UserName = "PPFCSURYA", Role = "Audit", Password = "" },
+        new UserRecord { EmployeeName = "DURGA PRASAD", UserName = "PPFCDURGA", Role = "Admin", Password = "secret2" },
+        new UserRecord { EmployeeName = "SURYA PRAKASARAO", UserName = "PPFCSURYA", Role = "Audit", Password = "" },
+        new UserRecord { EmployeeName = "DURGA PRASAD", UserName = "PPFCDURGA", Role = "Admin", Password = "secret2" },
+        new UserRecord { EmployeeName = "SURYA PRAKASARAO", UserName = "PPFCSURYA", Role = "Audit", Password = "" },
+        new UserRecord { EmployeeName = "DURGA PRASAD", UserName = "PPFCDURGA", Role = "Admin", Password = "secret2" },
+        new UserRecord { EmployeeName = "SURYA PRAKASARAO", UserName = "PPFCSURYA", Role = "Audit", Password = "" }
+    };
+
+    private List<string> Roles = new List<string> { "Admin", "Manager", "User", "Audit" };
+
+    // Temporary edit item used during inline editing. It contains ConfirmPassword but we won't persist ConfirmPassword to the grid data.
+    private EditUserItem editItem = new EditUserItem();
+
+    // Add new row and start editing it
+    private async Task AddNew()
+    {
+        var newUser = new UserRecord();
+        Users.Insert(0, newUser);
+
+        // Refresh grid so it knows about new item, then enter edit mode on it
+        await grid.Reload();
+        StateHasChanged();
+
+        // small yield to ensure grid updated before EditRow
+        await Task.Yield();
+
+        grid.EditRow(newUser);
+
+        // initialize editItem
+        editItem = new EditUserItem();
+    }
+
+    // Start editing existing row
+    private async Task EditRow(UserRecord user)
+    {
+        // create a shallow copy into editItem so ConfirmPassword doesn't get stored
+        editItem = new EditUserItem
+        {
+            EmployeeName = user.EmployeeName,
+            UserName = user.UserName,
+            Role = user.Role,
+            Password = user.Password,
+            ConfirmPassword = string.Empty
+        };
+
+        grid.EditRow(user);
+
+        // ensure UI updated
+        await Task.Yield();
+    }
+
+    private async Task SaveRow(UserRecord user)
+    {
+        try
+        {
+            // basic validation
+            if (string.IsNullOrWhiteSpace(editItem.EmployeeName) || string.IsNullOrWhiteSpace(editItem.UserName) || string.IsNullOrWhiteSpace(editItem.Role))
+            {
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Warning, Summary = "Validation", Detail = "Please fill required fields.", Duration = 4000 });
+                return;
+            }
+
+            // If password was changed or set, ensure confirm matches. If both empty, keep existing password.
+            if (!string.IsNullOrEmpty(editItem.Password) || !string.IsNullOrEmpty(editItem.ConfirmPassword))
+            {
+                if (editItem.Password != editItem.ConfirmPassword)
+                {
+                    NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Password Mismatch", Detail = "Password and Confirm Password do not match.", Duration = 5000 });
+                    return;
+                }
+            }
+
+            // copy fields from editItem to actual user record, but DO NOT copy ConfirmPassword into Users list
+            user.EmployeeName = editItem.EmployeeName;
+            user.UserName = editItem.UserName;
+            user.Role = editItem.Role;
+
+            // Only update stored Password if user entered a new password; otherwise keep existing
+            if (!string.IsNullOrEmpty(editItem.Password))
+            {
+                user.Password = editItem.Password; // in real app, hash this before saving
+            }
+
+            // Tell the grid the row is updated
+            await grid.UpdateRow(user);
+
+            // End editing and refresh
+            grid.CancelEditRow(user);
+            await grid.Reload();
+            editItem = new EditUserItem();
+            StateHasChanged();
+
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Saved", Detail = "User saved successfully.", Duration = 3000 });
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Error", Detail = ex.Message, Duration = 5000 });
+        }
+    }
+
+    private async Task CancelEdit(UserRecord user)
+    {
+        grid.CancelEditRow(user);
+
+        // if newly added empty row cancelled, remove it
+        if (string.IsNullOrEmpty(user.EmployeeName) && string.IsNullOrEmpty(user.UserName) && string.IsNullOrEmpty(user.Role))
+        {
+            Users.Remove(user);
+            await grid.Reload();
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task DeleteUser(UserRecord user)
+    {
+        // If currently editing this row, cancel edit first
+        try
+        {
+            grid.CancelEditRow(user);
+        }
+        catch { }
+
+        if (Users.Contains(user))
+        {
+            Users.Remove(user);
+            await grid.Reload();
+            StateHasChanged();
+
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Info, Summary = "Deleted", Detail = "User removed.", Duration = 3000 });
+        }
+    }
+
+    public class UserRecord
+    {
+        public string EmployeeName { get; set; }
+        public string UserName { get; set; }
+        public string Role { get; set; }
+        public string Password { get; set; }
+    }
+
+    // Edit model contains ConfirmPassword but this field is only used during editing and never persisted into Users[].
+    public class EditUserItem
+    {
+        public string EmployeeName { get; set; }
+        public string UserName { get; set; }
+        public string Role { get; set; }
+        public string Password { get; set; }
+        public string ConfirmPassword { get; set; }
+    }
+}

@@ -1,0 +1,12 @@
+﻿@inherits LayoutComponentBase
+
+<PageTitle>SPPFC</PageTitle>
+
+<ErrorBoundary @ref="ErrorB">
+    <ChildContent>
+        @Body
+    </ChildContent>
+    <ErrorContent Context="ex">
+        <ErrorPage Error="@ex" ErrorB="@ErrorB"></ErrorPage>
+    </ErrorContent>
+</ErrorBoundary>

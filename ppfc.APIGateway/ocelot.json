@@ -1,0 +1,35 @@
+﻿{
+  "Routes": [
+    {
+      "DownstreamPathTemplate": "/api/Login/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7238
+        }
+      ],
+      "UpstreamPathTemplate": "/Login/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+    },
+    {
+      "DownstreamPathTemplate": "/api/Admin/{everything}", //where the request goes after passing through the gateway to API
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7238
+        }
+      ],
+      "UpstreamPathTemplate": "/Admin/{everything}", //request coming into your API Gateway
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      }
+    }
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "http://localhost:5000"
+  }
+}

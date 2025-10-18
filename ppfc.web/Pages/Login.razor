@@ -1,0 +1,111 @@
+﻿@layout BlankLayout
+@page "/login"
+@using System.Net.Http.Json
+@using Radzen
+@using Radzen.Blazor
+
+@inject HttpClient Http
+<RadzenNotification />
+
+<PageTitle>PPFC</PageTitle>
+
+<div class="h-100 login-page d-flex flex-wrap justify-content-end align-items-center">
+    <div class="card card-auth login-container ">
+        <div class="row g-0">
+            <div class="col-lg-12 login-card">
+                <div class="site-header">
+                    <div class="brand">
+                        Sri Padma Priya<br>
+                        <small style="font-weight:600">Finance Corp</small>
+                    </div>
+                </div>
+
+                <!-- No HTML form submit -->
+                <div class="mt-3">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">UserName</label>
+                        <input id="username"
+                               class="form-control"
+                               placeholder="Enter username"
+                               @bind="loginData.UserName"
+                               autocomplete="username" />
+                    </div>
+
+                    <div class="mb-2">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <input id="password"
+                                   class="form-control"
+                                   placeholder="Password"
+                                   type="@(ShowPassword ? "text" : "password")"
+                                   @bind="loginData.Password"
+                                   autocomplete="current-password" />
+                            <button class="btn btn-outline-secondary"
+                                    type="button"
+                                    aria-label="Toggle password"
+                                    @onclick="TogglePassword">
+                                <i class="@(ShowPassword ? "fa-solid fa-eye-slash" : "fa-solid fa-eye")"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(errorMessage))
+                    {
+                        <div class="alert alert-danger mt-3" role="alert">@errorMessage</div>
+                    }
+
+                    <div class="d-flex align-items-center gap-3 mt-4">
+                        <button type="button"
+                                class="btn btn-sign submit-btn btn-block w-100"
+                                @onclick="LoginAsync"
+                                disabled="@IsSubmitting">
+                            @if (IsSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Signing in...</span>
+                            }
+                            else
+                            {
+                                <span>Sign In</span>
+                            }
+                        </button>
+                    </div>
+
+                    <div class="powered-by">
+                        <h6>Powered By</h6>
+                        <img alt="nyros-logo"
+                             loading="lazy"
+                             decoding="async"
+                             src="/images/logocolor.png" />
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <!-- main -->
+    @* <div class="auth-wrap container-fluid h-100">
+        <div class="row align-items-center h-100">
+            <div class="col-lg-7">  </div>
+            <div class="col-12 col-lg-3">
+                
+            </div>
+        </div>
+    </div> *@
+
+    <!-- pinned footer -->
+    <footer class="site-footer">
+        <small>
+            Developed and Maintained by <strong><a href="https://www.nyros.com/">Nyros Technologies</a>, <a href="http://www.inkakinada.com/">Kakinada, India</a></strong> &nbsp;© <span id="year"></span>
+        </small>
+    </footer>
+
+    <!-- loading overlay -->
+    <div class="loading-overlay" id="loading">
+        <div class="spinner-border text-light" role="status" style="width:4rem;height:4rem">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+</div>
+
