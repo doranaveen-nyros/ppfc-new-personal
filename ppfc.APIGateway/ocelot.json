@@ -10,7 +10,7 @@
         }
       ],
       "UpstreamPathTemplate": "/Login/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
     },
     {
       "DownstreamPathTemplate": "/api/Admin/{everything}", //where the request goes after passing through the gateway to API

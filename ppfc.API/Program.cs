@@ -39,6 +39,11 @@ builder.Services.AddHttpClient<SmsService>();          // injects HttpClient
 builder.Services.AddScoped<SmsService>();             // injects IConfiguration automatically
 builder.Services.AddScoped<ClosingBalanceService>();
 
+// Enable console logging explicitly
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Debug);
+
 
 var app = builder.Build();
 
