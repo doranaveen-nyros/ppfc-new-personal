@@ -5,7 +5,7 @@
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
-          "Host": "127.0.0.1",
+          "Host": "ppfcapi-d9epesbhh4gzghae.southindia-01.azurewebsites.net",
           "Port": 443
         }
       ],
@@ -14,7 +14,7 @@
     },
     {
       "DownstreamPathTemplate": "/api/Admin/{everything}", //where the request goes after passing through the gateway to API
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "ppfcapi-d9epesbhh4gzghae.southindia-01.azurewebsites.net",
       "DownstreamHostAndPorts": [
         {
           "Host": "127.0.0.1",
@@ -30,6 +30,6 @@
     }
   ],
   "GlobalConfiguration": {
-    "BaseUrl": "https://ppfc-c7bzbbbebfgcgyfu.southindia-01.azurewebsites.net"
+    "BaseUrl": "https://ppfcgateway-bce5d6gnfyetbec8.southindia-01.azurewebsites.net/"
   }
 }
