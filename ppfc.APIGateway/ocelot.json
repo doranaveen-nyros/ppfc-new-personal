@@ -5,7 +5,7 @@
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
+          "Host": "ppfc-c7bzbbbebfgcgyfu.southindia-01.azurewebsites.net",
           "Port": 443
         }
       ],
@@ -17,7 +17,7 @@
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
+          "Host": "ppfc-c7bzbbbebfgcgyfu.southindia-01.azurewebsites.net",
           "Port": 443
         }
       ],

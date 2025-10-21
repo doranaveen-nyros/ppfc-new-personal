@@ -47,6 +47,8 @@ builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
 var app = builder.Build();
 
+Console.WriteLine("API project started successfully in Azure...");
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
