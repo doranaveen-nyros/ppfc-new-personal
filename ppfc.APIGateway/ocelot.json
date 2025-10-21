@@ -5,7 +5,7 @@
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
-          "Host": "ppfc-c7bzbbbebfgcgyfu.southindia-01.azurewebsites.net",
+          "Host": "127.0.0.1",
           "Port": 443
         }
       ],
@@ -17,7 +17,7 @@
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
-          "Host": "ppfc-c7bzbbbebfgcgyfu.southindia-01.azurewebsites.net",
+          "Host": "127.0.0.1",
           "Port": 443
         }
       ],
@@ -30,6 +30,6 @@
     }
   ],
   "GlobalConfiguration": {
-    "BaseUrl": "http://localhost:5000"
+    "BaseUrl": "https://ppfc-c7bzbbbebfgcgyfu.southindia-01.azurewebsites.net"
   }
 }
