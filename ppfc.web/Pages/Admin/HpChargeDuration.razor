@@ -1,193 +1,82 @@
 @page "/admin/hpchargeduration"
 @using Radzen
 @using Radzen.Blazor
+@using ppfc.DTO
 @attribute [Authorize]
+@inject HttpClient Http
 @inject NotificationService NotificationService
+@inject DialogService DialogService
 
-<h3 class="text-left mb-3">HP Charge Master</h3>
+<RadzenNotification />
 
-<div>
-  <RadzenDataGrid @ref="grid" TItem="HpChargeRecord" Data="Records" EditMode="DataGridEditMode.Single"
-    AllowPaging="false">
-    <Columns>
-      <RadzenDataGridColumn TItem="HpChargeRecord" Property="FromDate" Title="From Date" Width="180px">
-        <Template Context="item">
-          @(item.FromDate.HasValue? item.FromDate.Value.ToString("dd-MMM-yyyy") : "-")
-        </Template>
-        <EditTemplate Context="item">
-          <RadzenDatePicker @bind-Value="editItem.FromDate" Style="width:100%" TValue="DateTime ?" />
-        </EditTemplate>
-      </RadzenDataGridColumn>
+<PageTitle>Hp Charge Duration</PageTitle>
 
-      <RadzenDataGridColumn TItem="HpChargeRecord" Property="ToDate" Title="To Date" Width="180px">
-        <Template Context="item">
-          @(item.ToDate.HasValue? item.ToDate.Value.ToString("dd-MMM-yyyy") : "-")
-        </Template>
-        <EditTemplate Context="item">
-          <RadzenDatePicker @bind-Value="editItem.ToDate" Style="width:100%" TValue="DateTime ?" />
-        </EditTemplate>
-      </RadzenDataGridColumn>
-
-      <RadzenDataGridColumn TItem="HpChargeRecord" Property="HpChargeInst" Title="HP Charge Inst's" Width="150px">
-        <Template Context="item">
-          @(item.HpChargeInst.HasValue? item.HpChargeInst.Value.ToString() : "-")
-        </Template>
-        <EditTemplate Context="item">
-          <RadzenNumeric @bind-Value="editItem.HpChargeInst" Min="0" Style="width:100%" />
-        </EditTemplate>
-      </RadzenDataGridColumn>
-
-      <RadzenDataGridColumn TItem="HpChargeRecord" Title="Actions" Width="140px">
-        <Template Context="item">
-          <RadzenButton Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
-            Click="@(args => EditRow(item))" />
-        </Template>
-
-        <EditTemplate Context="item">
-          <RadzenButton Icon="save" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Primary"
-            Click="@(args => SaveRow(item))" Style="margin-right:8px" />
-          <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
-            Click="@(args => DeleteRow(item))" Style="margin-right:8px" />
-          <RadzenButton Icon="close" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
-            Click="@(args => CancelEdit(item))" />
-        </EditTemplate>
-      </RadzenDataGridColumn>
-    </Columns>
-  </RadzenDataGrid>
-</div>
-
-@code {
-  private RadzenDataGrid<HpChargeRecord> grid;
-
-  // Initial sample data (replace with API/DB calls as needed)
-  private List<HpChargeRecord> Records = new List<HpChargeRecord>
+@if (IsLoading)
 {
-new HpChargeRecord
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading HP Charge Duration Data...</p>
+    </div>
+}
+else
 {
-FromDate = new DateTime(1990,1,1),
-ToDate = new DateTime(2026,12,31),
-HpChargeInst = 6
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div><h3 class="text-left mb-0">HP Charge Duration</h3></div>
+        <RadzenButton Icon="add_circle"
+                      Text="Add New"
+                      Click="@AddNew"
+                      Style="margin-bottom:6px"
+                      ButtonStyle="ButtonStyle.Secondary" />
+    </div>
+
+    <div>
+        <RadzenDataGrid @ref="grid" TItem="HPChargeDurationDto" Data="hpChargeDurations" EditMode="DataGridEditMode.Single"
+                        AllowPaging="false">
+            <Columns>
+                <RadzenDataGridColumn TItem="HPChargeDurationDto" Property="FromDate" Title="From Date" Width="180px">
+                    <Template Context="item">
+                        @(item.FromDate.HasValue? item.FromDate.Value.ToString("dd-MMM-yyyy") : "-")
+                    </Template>
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.FromDate" Style="width:100%" TValue="DateTime ?" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="HPChargeDurationDto" Property="ToDate" Title="To Date" Width="180px">
+                    <Template Context="item">
+                        @(item.ToDate.HasValue? item.ToDate.Value.ToString("dd-MMM-yyyy") : "-")
+                    </Template>
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.ToDate" Style="width:100%" TValue="DateTime ?" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="HPChargeDurationDto" Property="HPChargeInstallments" Title="HP Charge Inst's" Width="150px">
+                    <Template Context="item">
+                        @(item.HPChargeInstallments.HasValue? item.HPChargeInstallments.Value.ToString() : "-")
+                    </Template>
+                    <EditTemplate Context="item">
+                        <RadzenNumeric @bind-Value="item.HPChargeInstallments" Min="0" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="HPChargeDurationDto" Title="Actions" Width="140px">
+                    <Template Context="item">
+                        <RadzenButton Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                      Click="@(args => EditDuration(item))" />
+                        <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
+                                      Click="@(args => DeleteDuration(item))" Style="margin-right:8px" />
+                    </Template>
+
+                    <EditTemplate Context="item">
+                        <RadzenButton Icon="save" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Primary"
+                                      Click="@(args => SaveDuration(item))" Style="margin-right:8px" />
+                        <RadzenButton Icon="close" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                      Click="@(args => CancelEdit(item))" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </div>
 }
-};
 
-  // temporary edit model (includes nullable types so empty fields are allowed during edit)
-  private EditHpChargeItem editItem = new EditHpChargeItem();
-
-  private void EditRow(HpChargeRecord item)
-  {
-    // copy to edit model so we don't modify the original until Save
-    editItem = new EditHpChargeItem
-    {
-      FromDate = item.FromDate,
-      ToDate = item.ToDate,
-      HpChargeInst = item.HpChargeInst
-    };
-
-    grid.EditRow(item);
-  }
-
-  private async Task SaveRow(HpChargeRecord item)
-  {
-    // basic validation
-    if (!editItem.FromDate.HasValue || !editItem.ToDate.HasValue)
-    {
-      NotificationService.Notify(new NotificationMessage
-      {
-        Severity = NotificationSeverity.Warning,
-        Summary = "Validation",
-        Detail = "Please enter both From Date and To Date.",
-        Duration = 4000
-      });
-      return;
-    }
-
-    if (editItem.FromDate > editItem.ToDate)
-    {
-      NotificationService.Notify(new NotificationMessage
-      {
-        Severity = NotificationSeverity.Warning,
-        Summary = "Validation",
-        Detail = "From Date cannot be later than To Date.",
-        Duration = 4000
-      });
-      return;
-    }
-
-    // copy back into underlying record (persistence to server can be added here)
-    item.FromDate = editItem.FromDate;
-    item.ToDate = editItem.ToDate;
-    item.HpChargeInst = editItem.HpChargeInst;
-
-    try
-    {
-      await grid.UpdateRow(item);
-
-      // exit edit mode and refresh
-      grid.CancelEditRow(item);
-      await grid.Reload();
-
-      NotificationService.Notify(new NotificationMessage
-      {
-        Severity = NotificationSeverity.Success,
-        Summary = "Saved",
-        Detail = "Record saved successfully.",
-        Duration = 3000
-      });
-    }
-    catch (Exception ex)
-    {
-      NotificationService.Notify(new NotificationMessage
-      {
-        Severity = NotificationSeverity.Error,
-        Summary = "Error",
-        Detail = ex.Message,
-        Duration = 5000
-      });
-    }
-  }
-
-  private async Task CancelEdit(HpChargeRecord item)
-  {
-    grid.CancelEditRow(item);
-
-    // If the row was newly inserted and empty you could remove it here.
-    await Task.Yield();
-    StateHasChanged();
-  }
-
-  private async Task DeleteRow(HpChargeRecord item)
-  {
-    // if this row is in edit mode, cancel first
-    try { grid.CancelEditRow(item); } catch { }
-
-    if (Records.Contains(item))
-    {
-      Records.Remove(item);
-      await grid.Reload();
-
-      NotificationService.Notify(new NotificationMessage
-      {
-        Severity = NotificationSeverity.Info,
-        Summary = "Deleted",
-        Detail = "Record deleted.",
-        Duration = 3000
-      });
-    }
-  }
-
-
-  // Data models
-  public class HpChargeRecord
-  {
-    public DateTime? FromDate { get; set; }
-    public DateTime? ToDate { get; set; }
-    public int? HpChargeInst { get; set; }
-  }
-
-  public class EditHpChargeItem
-  {
-    public DateTime? FromDate { get; set; }
-    public DateTime? ToDate { get; set; }
-    public int? HpChargeInst { get; set; }
-  }
-}

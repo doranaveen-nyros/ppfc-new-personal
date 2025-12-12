@@ -1,27 +1,59 @@
 ﻿{
   "Routes": [
     {
-      "DownstreamPathTemplate": "/api/Login/{everything}",
+      "DownstreamPathTemplate": "/api/Login/{everything}", //where the request goes after passing through the gateway to API
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
-          "Host": "ppfcapi-d9epesbhh4gzghae.southindia-01.azurewebsites.net",
-          "Port": 443
+          "Host": "localhost",
+          "Port": 7238
         }
       ],
-      "UpstreamPathTemplate": "/Login/{everything}",
+      "UpstreamPathTemplate": "/Login/{everything}", //request coming into your API Gateway
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Admin/{everything}", //where the request goes after passing through the gateway to API
-      "DownstreamScheme": "ppfcapi-d9epesbhh4gzghae.southindia-01.azurewebsites.net",
+      "DownstreamPathTemplate": "/api/Admin/{everything}",
+      "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
-          "Host": "127.0.0.1",
-          "Port": 443
+          "Host": "localhost",
+          "Port": 7238
         }
       ],
-      "UpstreamPathTemplate": "/Admin/{everything}", //request coming into your API Gateway
+      "UpstreamPathTemplate": "/Admin/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      }
+    },
+    {
+      "DownstreamPathTemplate": "/api/Master/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7238
+        }
+      ],
+      "UpstreamPathTemplate": "/Master/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      }
+    },
+    {
+      "DownstreamPathTemplate": "/api/Transactions/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7238
+        }
+      ],
+      "UpstreamPathTemplate": "/Transactions/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
@@ -30,6 +62,6 @@
     }
   ],
   "GlobalConfiguration": {
-    "BaseUrl": "https://ppfcgateway-bce5d6gnfyetbec8.southindia-01.azurewebsites.net/"
+    "BaseUrl": "http://localhost:5000"
   }
 }

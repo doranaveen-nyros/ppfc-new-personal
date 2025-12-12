@@ -1,0 +1,81 @@
+﻿@page "/master/birthdaymessages"
+@using Radzen
+@using Radzen.Blazor
+@using System.Globalization
+@using ppfc.DTO
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenNotification />
+
+<PageTitle>Birthday Messages</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading Birthday Messages...</p>
+    </div>
+}
+else
+{
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div><h3 class="mb-0">Birthday Messages</h3></div>
+    </div>
+
+    <RadzenDataGrid @ref="grid"
+                    Data="@messages"
+                    TItem="BirthMessageDto"
+                    EditMode="DataGridEditMode.Single"
+                    AllowPaging="true"
+                    PageSize="10"
+                    AllowSorting="true"
+                    Style="min-width:720px;">
+        <Columns>
+
+
+            <RadzenDataGridColumn TItem="BirthMessageDto" Property="Message" Title="Message" Width="35">
+                <Template Context="item">
+                    @item.Message
+                </Template>
+                <EditTemplate Context="item">
+                    <RadzenTextArea @bind-Value="item.Message" Min="0" Step="1" Style="width:100%;" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="BirthMessageDto" Property="MessagePart" Title="Message" Width="35">
+                <Template Context="item">
+                    @item.MessagePart
+                </Template>
+                <EditTemplate Context="item">
+                    <RadzenTextArea @bind-Value="item.MessagePart" Min="0" Step="1" Style="width:100%;" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="BirthMessageDto" Property="Signature" Title="Signature" Width="35">
+                <Template Context="item">
+                    @item.Signature
+                </Template>
+                <EditTemplate Context="item">
+                    <RadzenTextArea @bind-Value="item.Signature" Min="0" Step="1" Style="width:100%;" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="BirthMessageDto" Title="Actions" Width="20%">
+                <Template Context="item">
+                    @if (grid != null && grid.IsRowInEditMode(item))
+                    {
+                        <RadzenButton Icon="save" Size="ButtonSize.Small" Click="@(args => SaveBirthdayMessage(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => CancelEdit(item))" />
+                    }
+                    else
+                    {
+                        <RadzenButton Icon="edit" Size="ButtonSize.Small" Click="@(args => EditPDRLockLimit(item))" Style="margin-right:6px;" />                        
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}

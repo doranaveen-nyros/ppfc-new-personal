@@ -1,0 +1,49 @@
+﻿@page "/master/company"
+@using Radzen
+@using Radzen.Blazor
+@using ppfc.DTO
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenNotification />
+
+<PageTitle>Company</PageTitle>
+
+<h3 class="mb-3">Company</h3>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading company...</p>
+    </div>
+}
+else
+{
+    <RadzenCard Style="max-width: 600px;" class="p-0">
+        <RadzenDataGrid @ref="grid" TItem="CompaniesDto" Data="@companies" ShowPagingSummary="false" AllowFiltering="false" AllowPaging="false" AllowSorting="false" Class="table-bordered">
+            <Columns>
+                <RadzenDataGridColumn TItem="CompaniesDto" Property="CompanyName" Title="Company Name">
+                    <Template Context="company">
+                        @company.CompanyName
+                    </Template>
+                    <EditTemplate Context="company">
+                        <RadzenTextBox Style="width:100%" @bind-Value="company.CompanyName" Placeholder="Enter Company Name" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="CompaniesDto" Title="Actions" Width="150px">
+                    <Template Context="company">
+                        <RadzenButton Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="@(args => EditCompany(company))" Style="background:transparent;color: #000;margin-right:6px" />
+                    </Template>
+                    <EditTemplate Context="company">
+                        <RadzenButton Icon="save" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Primary" Click="@(args => UpdateCompany(company))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="close" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="@(args => CancelEdit(company))" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </RadzenCard>
+}

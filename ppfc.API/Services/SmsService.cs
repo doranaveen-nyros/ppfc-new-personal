@@ -1,7 +1,10 @@
-﻿using Microsoft.Extensions.Caching.Memory;
+﻿using Microsoft.AspNetCore.Mvc.TagHelpers.Cache;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using ppfc.DTO;
 using System.Data;
 using System.Data.SqlClient;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
@@ -278,6 +281,90 @@ namespace ppfc.API.Services
                     await UpdateSmsStatusAsync(con, msg.SMSId, "UnSent");
                 }
             }
+        }
+
+        public async Task SendSMSAdminCustomAsync(int receiverCount)
+        {
+            var connectionString = GetConnection().ConnectionString;
+
+            // Retrieve credentials from cache
+            if (!_cache.TryGetValue("BusinessSMSID", out string smsUserId) ||
+                !_cache.TryGetValue("BusinessSMSPassword", out string smsPassword))
+            {
+                throw new InvalidOperationException("BusinessSMS credentials not found in cache.");
+            }
+
+            await using var con = new SqlConnection(connectionString);
+            await con.OpenAsync();
+
+            // Fetch recently added SMS
+            var selectQuery = $@"
+            SELECT TOP ({receiverCount}) SMSId, Message, PhoneNumber, MessageType
+            FROM SMS
+            WHERE Status = 'Undelivered' AND SenderId IS NULL
+            ORDER BY SMSId DESC";
+
+            await using var cmdSelect = new SqlCommand(selectQuery, con);
+            await using var reader = await cmdSelect.ExecuteReaderAsync();
+
+            var messages = new List<SmsMessageDto>();
+            while (await reader.ReadAsync())
+            {
+                messages.Add(new SmsMessageDto
+                {
+                    SMSId = reader.GetInt32(reader.GetOrdinal("SMSId")),
+                    PhoneNumber = reader.GetString(reader.GetOrdinal("PhoneNumber")),
+                    Message = reader.GetString(reader.GetOrdinal("Message")),
+                    MessageType = reader.GetString(reader.GetOrdinal("MessageType"))
+                });
+            }
+
+            reader.Close();
+
+            foreach (var msg in messages)
+            {
+                string gatewayResponse;
+
+                if (msg.PhoneNumber.Length == 10)
+                {
+                    // Call SMS gateway
+                    gatewayResponse = await SendSMSUsingBSAsync(smsUserId, smsPassword, msg.PhoneNumber, msg.Message, "normal");
+
+                    if (gatewayResponse.Contains("S."))
+                    {
+                        await UpdateSmsStatusAsync(con, msg.SMSId, "Delivered");
+                    }
+                }
+                else
+                {
+                    await UpdateSmsStatusAsync(con, msg.SMSId, "UnSent");
+                }
+            }
+        }
+
+        public string SendSMSUsingBS(string recipient, string message, string scheduleDate)
+        {
+            if (!_cache.TryGetValue("BusinessSMSID", out string smsUserId) ||
+                !_cache.TryGetValue("BusinessSMSPassword", out string smsPassword))
+            {
+                throw new InvalidOperationException("BusinessSMS credentials not found in cache.");
+            }
+
+            string url = "http://www.businesssms.co.in/SMS.aspx/";
+            url += $"?ID={Uri.EscapeDataString(smsUserId)}" +
+                   $"&Pwd={Uri.EscapeDataString(smsPassword)}" +
+                   $"&PhNo={Uri.EscapeDataString(recipient)}" +
+                   $"&Text={Uri.EscapeDataString(message)}";
+
+            if (!string.IsNullOrEmpty(scheduleDate))
+            {
+                url += $"&ScheduleAt={Uri.EscapeDataString(scheduleDate)}";
+            }
+
+            var request = WebRequest.Create(url);
+            using var response = request.GetResponse();
+            using var reader = new StreamReader(response.GetResponseStream()!);
+            return reader.ReadToEnd();
         }
 
         private static async Task UpdateSmsStatusAsync(SqlConnection con, int smsId, string status)
@@ -616,7 +703,95 @@ namespace ppfc.API.Services
             }
         }
 
+        public async Task SendSMS_SPPFIN(string messageType)
+        {
+            await using var con = new SqlConnection(connectionString);
+
+            try
+            {
+                if (con.State == ConnectionState.Closed)
+                    con.Open();
+
+                using (SqlCommand cmdMsgs = new SqlCommand(
+                    "SELECT TOP 6 SMSId, Message, PhoneNumber FROM SMS WHERE Status='Undelivered' AND MessageType=@MessageType AND SenderId = 'SPPFIN'", con))
+                {
+                    cmdMsgs.Parameters.AddWithValue("@MessageType", messageType);
+
+                    DataSet dsMsgs = new DataSet();
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmdMsgs))
+                    {
+                        da.Fill(dsMsgs, "Messages");
+                    }
+
+                    // Retrieve credentials from cache
+                    var userId = _cache.Get<string>("BusinessSMSIDSPPFin");
+                    var password = _cache.Get<string>("BusinessSMSPasswordSPPFin");
+
+                    if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(password))
+                    {
+                        throw new InvalidOperationException("Business SMS credentials are missing in cache.");
+                    }
+
+                    foreach (DataRow dr in dsMsgs.Tables["Messages"].Rows)
+                    {
+                        string mobileNo = dr["PhoneNumber"].ToString();
+                        string textMsg = dr["Message"].ToString();
+                        string gatewayResponse = "";
+
+                        if (mobileNo.Length == 10)
+                        {
+                            gatewayResponse = await SendMessage_SPPFIN(userId, password, mobileNo, textMsg);
+
+                            if (gatewayResponse.Contains("S."))
+                            {
+                                await UpdateSmsStatusAsync(con, Convert.ToInt32(dr["SMSId"]), "Delivered");
+                            }
+                        }
+                        else
+                        {
+                            await UpdateSmsStatusAsync(con, Convert.ToInt32(dr["SMSId"]), "UnSent");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log exception
+                System.Diagnostics.Debug.WriteLine(ex.Message);
+            }
+            finally
+            {
+                if (con.State == ConnectionState.Open)
+                    con.Close();
+            }
+        }
+
         private async Task<string> SendMessage(string userId, string password, string mobileNo, string textMsg)
+        {
+            string gatewayResponse = "";
+            int msgLength = textMsg.Length;
+
+            if (msgLength <= 160)
+            {
+                gatewayResponse = await SendSMSUsingBSAsync(userId, password, mobileNo, textMsg, "normal");
+            }
+            else
+            {
+                int msgCount = (int)Math.Ceiling(msgLength / 160.0);
+                for (int i = 0; i < msgCount; i++)
+                {
+                    string shortSMS = (i + 1 == msgCount)
+                        ? textMsg.Substring(i * 160, msgLength - i * 160)
+                        : textMsg.Substring(i * 160, 160);
+
+                    gatewayResponse = await SendSMSUsingBSAsync(userId, password, mobileNo, shortSMS, "normal");
+                }
+            }
+
+            return gatewayResponse;
+        }
+
+        private async Task<string> SendMessage_SPPFIN(string userId, string password, string mobileNo, string textMsg)
         {
             string gatewayResponse = "";
             int msgLength = textMsg.Length;
@@ -703,6 +878,250 @@ namespace ppfc.API.Services
                 return $"Error: {ex.Message}";
             }
         }
+
+        #endregion
+
+        #region Send SMS after HP Entry
+
+        public async Task sendSMS(int newHPentry_Id, HpEntryDetailsDto dto)
+        {
+            string Name = dto.Name;
+            string MobileNo = dto.MobileNumber;
+            decimal FinValue = dto.FinanceValue;
+            decimal RTOCharge = dto.RTOCharge;
+            decimal DOCCharge = dto.DocCharges;
+            decimal TotalFinAmt = dto.FinanceValue + dto.RTOCharge + dto.DocCharges;
+            decimal HpCharge=dto.HPCharge;
+            int? Installments=dto.Installments;
+            decimal? InstAmt = (TotalFinAmt + HpCharge) / Installments;
+            decimal PDRAmt=dto.PartyDebitAmount;
+            int CompanyId = dto.CompanyId;
+            int BranchId= dto.BranchId;
+
+            int? AutoconsultantId = dto.AutoConsultantId;
+            string VehicleNo = dto.VehicleNumber;
+            int VehicleId = dto.VehicleId;
+
+            // Retrieve credentials from cache
+            if (!_cache.TryGetValue("CompanyId", out int companyId) ||
+                !_cache.TryGetValue("UserName", out string? userName))
+            {
+                throw new InvalidOperationException("UserName credentials not found in cache.");
+            }
+
+            await InsertSMS(Name, MobileNo, TotalFinAmt, HpCharge, InstAmt, 
+                Installments, PDRAmt, newHPentry_Id, CompanyId, BranchId, userName);
+
+            await InsertConsultantSMS(Name, AutoconsultantId, VehicleNo, VehicleId, TotalFinAmt, HpCharge, InstAmt,
+                Installments, PDRAmt, newHPentry_Id, CompanyId, BranchId, userName);
+
+            await SendSMS("HPEntry");
+            await SendSMS_SPPFIN("HPEntry");
+        }
+
+        public async Task<int> InsertSMS(
+    string name,
+    string mobileNo,
+    decimal totFinAmt,
+    decimal hpCharge,
+    decimal? instAmt,
+    int? installments,
+    decimal pdrAmt,
+    int newHpentryId,
+    int companyId,
+    int branchId,
+    string userName)
+        {
+            int status = 0;
+
+            var companyPhoneNo = await GetContactNumberAsync();
+
+            string companyNum = Make_NCPR_Format(companyPhoneNo);
+            string teluguMessage;
+
+            // Company Type 2 or 3
+            if (companyId == 2 || companyId == 3)
+            {
+                teluguMessage =
+                    $"శ్రీ పద్మ ప్రియ ఫైనాన్స్‌లో లోన్ తీసుకున్నందుకు ధన్యవాదాలు, మీ A/C నం: {newHpentryId}, లోన్ మొత్తం :{totFinAmt}, వడ్డీ :{hpCharge}, ఇన్‌స్టాల్‌మెంట్ {instAmt:#########.##},{installments} నెలలు చెల్లించాలి.సమాచారం కోసం కాల్ : {companyNum}.";
+
+                status = InsertSmsRecord(
+                    name, mobileNo, teluguMessage, companyId, branchId, userName, "SPPFIN");
+
+                return status == 1 ? 2 : 0; // old code returns 2 for this company type
+            }
+            else
+            {
+                teluguMessage =
+                    $"శ్రీ విష్ణు ప్రియా ఫైనాన్స్‌లో లోన్ తీసుకున్నందుకు ధన్యవాదాలు, మీ A/C నం: {newHpentryId}, లోన్ మొత్తం :{totFinAmt}, వడ్డీ :{hpCharge}, ఇన్‌స్టాల్‌మెంట్ {instAmt:#########.##},{installments} నెలలు చెల్లించాలి.సమాచారం కోసం కాల్ : {companyNum}.";
+
+                status = InsertSmsRecord(
+                    name, mobileNo, teluguMessage, companyId, branchId, userName, null);
+
+                return status == 1 ? 1 : 0;
+            }
+        }
+
+        private int InsertSmsRecord(
+    string receiver,
+    string phone,
+    string message,
+    int companyId,
+    int branchId,
+    string userName,
+    string senderId)
+        {
+            try
+            {
+                using var con = new SqlConnection(connectionString);
+                con.Open();
+
+                string query;
+
+                if (!string.IsNullOrEmpty(senderId))
+                {
+                    query = @"INSERT INTO SMS 
+                (MessageType, Receiver, PhoneNumber, Message, Status, [Date], UserName, [Time], CompanyId, BranchId, SenderId) 
+                VALUES 
+                (@MessageType, @Receiver, @PhoneNumber, @Message, @Status, @Date, @UserName, @Time, @CompanyId, @BranchId, @SenderId)";
+                }
+                else
+                {
+                    query = @"INSERT INTO SMS 
+                (MessageType, Receiver, PhoneNumber, Message, Status, [Date], UserName, [Time], CompanyId, BranchId) 
+                VALUES 
+                (@MessageType, @Receiver, @PhoneNumber, @Message, @Status, @Date, @UserName, @Time, @CompanyId, @BranchId)";
+                }
+
+                using var cmd = new SqlCommand(query);
+                cmd.Parameters.AddWithValue("@MessageType", "HPEntry");
+                cmd.Parameters.AddWithValue("@Receiver", receiver);
+                cmd.Parameters.AddWithValue("@PhoneNumber", phone);
+                cmd.Parameters.AddWithValue("@Message", message);
+                cmd.Parameters.AddWithValue("@Status", "UnDelivered");
+                cmd.Parameters.AddWithValue("@Date", DateTime.Now.ToShortDateString());
+                cmd.Parameters.AddWithValue("@UserName", userName);
+                cmd.Parameters.AddWithValue("@Time", DateTime.Now.ToShortTimeString());
+                cmd.Parameters.AddWithValue("@CompanyId", companyId);
+                cmd.Parameters.AddWithValue("@BranchId", branchId);
+
+                if (!string.IsNullOrEmpty(senderId))
+                    cmd.Parameters.AddWithValue("@SenderId", senderId);
+
+                if (con.State == ConnectionState.Closed)
+                    con.Open();
+
+                cmd.ExecuteNonQuery();
+                return 1;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        public async Task<int> InsertConsultantSMS(
+    string name,
+    int? autoConsultantId,
+    string vehicleNo,
+    int vehicleId,
+    decimal totalFinanceValue,
+    decimal hpCharge,
+    decimal? instAmt,
+    int? installments,
+    decimal pdrAmt,
+    int newHpEntryId,
+    int companyId,
+    int branchId,
+    string userName)
+        {
+            try
+            {
+                using var con = new SqlConnection(connectionString);
+                con.Open();
+
+                // Get consultant phone
+                string consultantMobile = "";
+                using (var cmdConsultant = new SqlCommand(
+                    "SELECT PhoneNo FROM AutoConsultant WHERE AutoConsultantId=@Id", con))
+                {
+                    cmdConsultant.Parameters.AddWithValue("@Id", autoConsultantId);
+
+                    if (con.State == ConnectionState.Closed)
+                        con.Open();
+
+                    var result = cmdConsultant.ExecuteScalar();
+                    if (result == null) return 0;
+
+                    consultantMobile = result.ToString();
+                }
+
+                string vehicleMake = "";
+                using (var cmdConsultant = new SqlCommand(
+                    "SELECT VehicleName FROM Vehicle WHERE VehicleId=@Id", con))
+                {
+                    cmdConsultant.Parameters.AddWithValue("@Id", vehicleId);
+
+                    if (con.State == ConnectionState.Closed)
+                        con.Open();
+
+                    var result = cmdConsultant.ExecuteScalar();
+                    if (result == null) return 0;
+
+                    vehicleMake = result.ToString();
+                }
+
+                var companyPhoneNo = await GetContactNumberAsync();
+
+                string formattedCompanyPhone = Make_NCPR_Format(companyPhoneNo);
+
+                // Construct message text
+                string teluguMessage;
+
+                if (companyId == 2 || companyId == 3)
+                {
+                    teluguMessage =
+                        $"A/C : {newHpEntryId}, ఫైనాన్సింగ్ చేసినందుకు ధన్యవాదాలు , {vehicleNo},{vehicleMake},{totalFinanceValue}  మొత్తం మీకు ఫైనాన్స్ అమౌంట్‌గా అందించబడింది, ఏదైనా సందర్భంలో నగదు ఇవ్వని పక్షంలో, {formattedCompanyPhone} కి కాల్ చేయండి, SRI PADMA PRIYA FINANCE.";
+                }
+                else
+                {
+                    teluguMessage =
+                        $"A/C : {newHpEntryId}, ఫైనాన్సింగ్ చేసినందుకు ధన్యవాదాలు , {vehicleNo},{vehicleMake},{totalFinanceValue}  మొత్తం మీకు ఫైనాన్స్ అమౌంట్‌గా అందించబడింది, ఏదైనా సందర్భంలో నగదు ఇవ్వని పక్షంలో, {formattedCompanyPhone} కి కాల్ చేయండి, SRI VISHNU PRIYA FINANCE.";
+                }
+
+                // Insert SMS record
+                using var cmd = new SqlCommand(@"
+            INSERT INTO SMS 
+                (MessageType, Receiver, PhoneNumber, Message, Status, [Date], UserName, [Time], CompanyId, BranchId, SenderId)
+            VALUES
+                (@MessageType, @Receiver, @PhoneNumber, @Message, @Status, @Date, @UserName, @Time, @CompanyId, @BranchId, @SenderId)",
+                        con);
+
+                cmd.Parameters.AddWithValue("@MessageType", "HPEntry");
+                cmd.Parameters.AddWithValue("@Receiver", name);
+                cmd.Parameters.AddWithValue("@PhoneNumber", consultantMobile);
+                cmd.Parameters.AddWithValue("@Message", teluguMessage);
+                cmd.Parameters.AddWithValue("@Status", "UnDelivered");
+                cmd.Parameters.AddWithValue("@Date", DateTime.Now.ToShortDateString());
+                cmd.Parameters.AddWithValue("@UserName", userName);
+                cmd.Parameters.AddWithValue("@Time", DateTime.Now.ToShortTimeString());
+                cmd.Parameters.AddWithValue("@CompanyId", companyId);
+                cmd.Parameters.AddWithValue("@BranchId", branchId);
+                cmd.Parameters.AddWithValue("@SenderId", (companyId == 2 || companyId == 3) ? "SPPFIN" : null); // adjust if needed
+
+                if (con.State == ConnectionState.Closed)
+                    con.Open();
+
+                cmd.ExecuteNonQuery();
+                return 1;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+
 
         #endregion
 

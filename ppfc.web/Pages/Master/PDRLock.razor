@@ -1,0 +1,84 @@
+﻿@page "/master/pdrlock"
+@using Radzen
+@using Radzen.Blazor
+@using System.Globalization
+@using ppfc.DTO
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenNotification />
+
+<PageTitle>PDR Lock</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading Expense Limits...</p>
+    </div>
+}
+else
+{
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div><h3 class="mb-0">Expense Limit</h3></div>
+        <div>
+            <RadzenButton Icon="add_circle" Text="Add New" Click="@AddNew" ButtonStyle="ButtonStyle.Secondary" />
+        </div>
+    </div>
+
+    <RadzenDataGrid @ref="grid"
+                    Data="@pdrLocks"
+                    TItem="PDRLockDto"
+                    EditMode="DataGridEditMode.Single"
+                    AllowPaging="true"
+                    PageSize="10"
+                    AllowSorting="true"
+                    AllowFiltering="true"
+                    FilterMode="FilterMode.Simple"
+                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                    Style="min-width:720px;"
+                    PagerHorizontalAlign="HorizontalAlign.Right">
+        <Columns>
+            <RadzenDataGridColumn TItem="PDRLockDto" Property="BranchName" Title="Branch Name" Width="45%" FilterPlaceholder="Search Branch">
+                <EditTemplate Context="item">
+                    <RadzenDropDown Data="@branches"
+                                    TextProperty="BranchName"
+                                    ValueProperty="BranchId"
+                                    @bind-Value="item.BranchId"
+                                    AllowFiltering="true"
+                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                    Placeholder="- Select Branch -"
+                                    Style="width:100%;" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="PDRLockDto" Property="LockAmount" Title="Lock Amount" Width="35" Filterable="false">
+                <Template Context="item">
+                    @FormatNumber(item.LockAmount)
+                </Template>
+                <EditTemplate Context="item">
+                    <RadzenNumeric @bind-Value="item.LockAmount" Min="0" Step="1" Style="width:100%;" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="PDRLockDto" Title="Actions" Width="20%">
+                <Template Context="item">
+                    @if (grid != null && grid.IsRowInEditMode(item))
+                    {
+                        <RadzenButton Icon="save" Size="ButtonSize.Small" Click="@(args => SavePDRLock(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => CancelEdit(item))" />
+                    }
+                    else
+                    {
+                        <RadzenButton Icon="edit" Size="ButtonSize.Small" Click="@(args => EditPDRLockLimit(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger" Click="@(async () => await DeletePDRLock(item))" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+
+

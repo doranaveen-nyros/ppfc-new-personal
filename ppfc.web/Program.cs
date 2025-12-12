@@ -53,6 +53,14 @@ builder.Services.AddDataProtection()
 //Register AppNotifier for notifications
 builder.Services.AddScoped<AppNotifier>();
 
+// Register UserContext as a singleton
+builder.Services.AddSingleton<UserContext>();
+
+// Register BreadcrumbService as a singleton
+builder.Services.AddSingleton<BreadcrumbService>();
+
+// Connection String
+var connectionString = builder.Configuration.GetConnectionString("conn");
 
 var app = builder.Build();
 

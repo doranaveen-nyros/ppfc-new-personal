@@ -1,0 +1,59 @@
+﻿@page "/master/contactph"
+@using Radzen
+@using Radzen.Blazor
+@using ppfc.DTO
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenNotification />
+
+<PageTitle>Contact Phone No.</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading areas...</p>
+    </div>
+}
+else
+{
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div><h3 class="mb-0">Contact Phone Number</h3></div>
+    </div>
+
+    <RadzenDataGrid @ref="grid"
+                    Data="@contacts"
+                    TItem="ContactPhoneDto"
+                    EditMode="DataGridEditMode.Single"
+                    AllowPaging="true"
+                    PageSize="8"
+                    AllowSorting="true"
+                    Style="min-width:420px;">
+        <Columns>
+            <RadzenDataGridColumn TItem="ContactPhoneDto" Property="PhoneNumber" Title="Contact PHNo" Width="70%">
+                <Template Context="item">@item.PhoneNumber</Template>
+                <EditTemplate Context="item">
+                    <RadzenTextBox @bind-Value="item.PhoneNumber" Style="width:100%;" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="ContactPhoneDto" Title="Actions" Width="30%">
+                <Template Context="item">
+                    @if (grid != null && grid.IsRowInEditMode(item))
+                    {
+                        <RadzenButton Icon="save" Size="ButtonSize.Small" Click="@(args => SaveContact(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => CancelEdit(item))" />
+                    }
+                    else
+                    {
+                        <RadzenButton Icon="edit" Size="ButtonSize.Small" Click="@(args => EditContact(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger" Click="@(async () => await DeleteContact(item))" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}

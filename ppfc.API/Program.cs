@@ -38,16 +38,13 @@ builder.Services.AddMemoryCache();                     // for IMemoryCache
 builder.Services.AddHttpClient<SmsService>();          // injects HttpClient
 builder.Services.AddScoped<SmsService>();             // injects IConfiguration automatically
 builder.Services.AddScoped<ClosingBalanceService>();
+builder.Services.AddScoped<HpEntryService>();
+builder.Services.AddScoped<OpeningBalanceService>();
 
-// Enable console logging explicitly
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
+var connectionString = builder.Configuration.GetConnectionString("conn");
 
 var app = builder.Build();
-
-Console.WriteLine("API project started successfully in Azure...");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

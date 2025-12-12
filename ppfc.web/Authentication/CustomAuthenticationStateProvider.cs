@@ -5,10 +5,10 @@ using System.Security.Claims;
 
 public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 {
-    private readonly ProtectedSessionStorage _sessionStorage;
+    private readonly ProtectedLocalStorage _sessionStorage;
     private ClaimsPrincipal _cachedUser;
 
-    public CustomAuthenticationStateProvider(ProtectedSessionStorage sessionStorage)
+    public CustomAuthenticationStateProvider(ProtectedLocalStorage sessionStorage)
     {
         _sessionStorage = sessionStorage;
         _cachedUser = new ClaimsPrincipal(new ClaimsIdentity()); // anonymous by default

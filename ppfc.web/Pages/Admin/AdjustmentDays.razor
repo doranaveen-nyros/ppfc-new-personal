@@ -1,120 +1,94 @@
-@attribute [Authorize]
 @page "/admin/adjustmentdays"
-@using System.ComponentModel.DataAnnotations
+@using ppfc.DTO
+@using Radzen
+@using Radzen.Blazor
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+
+<RadzenNotification />
+
+<PageTitle>Adjustment Days</PageTitle>
+
 <h3 class="text-start mb-4">Adjustment Days</h3>
-<div class="container ms-0">
 
-            <EditForm Model="model" OnValidSubmit="OnSubmit">
-                <DataAnnotationsValidator />
-                <ValidationSummary />
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="row align-items-center">
-                                    <div class="col-auto">
-                                        <label class="col-form-label">Adjustment Days</label>
-                                    </div>
-                                    <div class="col">
-                                        <InputNumber @bind-Value="model.AdjustmentDays"
-                                            class="form-control form-control-sm" aria-label="Adjustment Days" />
-                                        <ValidationMessage For="() => model.AdjustmentDays" class="text-danger small" />
-                                    </div>
-                                    <div class="col-auto">
-                                        <button type="button" class="btn btn-secondary btn-sm"
-                                            @onclick="UpdateAdjustmentDays">Update</button>
-                                    </div>
-                                </div>
-                            </div>
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading adjustment days...</p>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <label class="col-form-label">Adjustment Days</label>
                         </div>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="row align-items-center">
-                                    <div class="col-auto">
-                                        <label class="col-form-label">Old Data Limit</label>
-                                    </div>
-                                    <div class="col">
-                                        <InputSelect @bind-Value="model.OldDataLimit" class="form-select form-select-sm"
-                                            aria-label="Old Data Limit">
-                                            @foreach (var d in OldDataOptions)
-                                            {
-                                                <option value="@d">@d</option>
-                                            }
-                                        </InputSelect>
-                                        <ValidationMessage For="() => model.OldDataLimit" class="text-danger small" />
-                                    </div>
-                                    <div class="col-auto">
-                                        <button type="button" class="btn btn-secondary btn-sm"
-                                            @onclick="ChangeOldDataLimit">Change</button>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="col">
+                            <InputNumber @bind-Value="adjustmentDays"
+                                         class="form-control form-control-sm" aria-label="Adjustment Days" />
+                        </div>
+                        <div class="col-auto">
+                            <button type="button"
+                                    class="btn btn-primary"
+                                    @onclick="UpdateAdjustmentDays"
+                                    disabled="@IsUpdating">
+                                @if (IsUpdating)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Updating...</span>
+                                }
+                                else
+                                {
+                                    <span>Update</span>
+                                }
+                            </button>
                         </div>
                     </div>
                 </div>
-            </EditForm>
+            </div>
+        </div>
 
-            @if (!string.IsNullOrEmpty(successMessage))
-            {
-                <div class="alert alert-success alert-dismissible fade show mt-3 mb-0" role="alert">
-                    @successMessage
-                    <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"
-                        aria-label="Close"></button>
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <label class="col-form-label">Old Data Limit</label>
+                        </div>
+                        <div class="col">
+                            <InputSelect @bind-Value="oldDataLimit" class="form-select form-select-sm"
+                                         aria-label="Old Data Limit">
+                                @foreach (var d in dayOptions)
+                                {
+                                    <option value="@d">@d</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-auto">
+                            <button type="button"
+                                    class="btn btn-primary"
+                                    @onclick="UpdateOldDataLimit"
+                                    disabled="@IsChanging">
+                                @if (IsChanging)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Changing...</span>
+                                }
+                                else
+                                {
+                                    <span>Change</span>
+                                }
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            }
-     
-</div>
-
-@code {
-    private SettingsModel model = new SettingsModel
-    {
-        AdjustmentDays = 6, // initial value from image
-        OldDataLimit = 10
-    };
-
-    private string successMessage;
-
-    // dropdown values for Old Data Limit (days) -- adjust as needed
-    private List<int> OldDataOptions = new List<int> { 1, 3, 5, 7, 10, 15, 30, 60, 90 };
-
-    private async Task UpdateAdjustmentDays()
-    {
-        // run validation manually for the single field
-        if (model.AdjustmentDays < 0)
-        {
-            successMessage = string.Empty;
-            return;
-        }
-
-        // TODO: call API / persist to server here
-        await Task.Delay(100); // simulate async save
-        successMessage = $"Adjustment Days updated to {model.AdjustmentDays}.";
-    }
-
-    private async Task ChangeOldDataLimit()
-    {
-        // TODO: call API / persist to server here
-        await Task.Delay(100); // simulate async save
-        successMessage = $"Old Data Limit changed to {model.OldDataLimit} days.";
-    }
-
-    // Not used in the example on-submit, but kept if you want full-form submission later
-    private Task OnSubmit()
-    {
-        // this handler can be used if you want to submit both settings together
-        successMessage = "Settings submitted.";
-        return Task.CompletedTask;
-    }
-
-    public class SettingsModel
-    {
-        [Range(0, 3650, ErrorMessage = "Adjustment days must be between 0 and 3650.")]
-        public int AdjustmentDays { get; set; }
-
-        [Range(1, 3650, ErrorMessage = "Old data limit must be at least 1 day.")]
-        public int OldDataLimit { get; set; }
-    }
+            </div>
+        </div>
+    </div>
 }

@@ -1,0 +1,84 @@
+﻿@page "/master/pendinglimit"
+@using Radzen
+@using Radzen.Blazor
+@using System.Globalization
+@using ppfc.DTO
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenNotification />
+
+<PageTitle>Pending Limit</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading Pending Limits...</p>
+    </div>
+}
+else
+{
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div><h3 class="mb-0">Pending Limit</h3></div>
+        <div>
+            <RadzenButton Icon="add_circle" Text="Add New" Click="@AddNew" ButtonStyle="ButtonStyle.Secondary" />
+        </div>
+    </div>
+
+    <RadzenDataGrid @ref="grid"
+                    Data="@pendingLimits"
+                    TItem="PendingLimitDto"
+                    EditMode="DataGridEditMode.Single"
+                    AllowPaging="true"
+                    PageSize="10"
+                    AllowSorting="true"
+                    AllowFiltering="true"
+                    FilterMode="FilterMode.Simple"
+                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                    Style="min-width:720px;"
+                    PagerHorizontalAlign="HorizontalAlign.Right">
+        <Columns>
+            <RadzenDataGridColumn TItem="PendingLimitDto" Property="BranchName" Title="Branch Name" Width="45%" FilterPlaceholder="Search Branch">
+                <EditTemplate Context="item">
+                    <RadzenDropDown Data="@branches"
+                                    TextProperty="BranchName"
+                                    ValueProperty="BranchId"
+                                    @bind-Value="item.BranchId"
+                                    AllowFiltering="true"
+                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                    Placeholder="- Select Branch -"
+                                    Style="width:100%;" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="PendingLimitDto" Property="PendingLimitValue" Title="Pending Limit Value" Width="35" Filterable="false">
+                <Template Context="item">
+                    @FormatNumber(item.PendingLimitValue)
+                </Template>
+                <EditTemplate Context="item">
+                    <RadzenNumeric @bind-Value="item.PendingLimitValue" Min="0" Step="1" Style="width:100%;" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="PendingLimitDto" Title="Actions" Width="20%">
+                <Template Context="item">
+                    @if (grid != null && grid.IsRowInEditMode(item))
+                    {
+                        <RadzenButton Icon="save" Size="ButtonSize.Small" Click="@(args => SavePending(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => CancelEdit(item))" />
+                    }
+                    else
+                    {
+                        <RadzenButton Icon="edit" Size="ButtonSize.Small" Click="@(args => EditPendingLimit(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger" Click="@(async () => await DeletePendingLimit(item))" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+
+

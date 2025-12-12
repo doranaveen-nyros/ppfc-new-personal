@@ -1,0 +1,146 @@
+﻿@page "/admin/usersettings"
+@using ppfc.web.Helpers
+@using Radzen
+@using Radzen.Blazor
+@using ppfc.DTO
+@attribute [Authorize]
+
+@inject HttpClient Http
+<RadzenNotification />
+
+<PageTitle>User Settings</PageTitle>
+
+<h3>User Settings</h3>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading users...</p>
+    </div>
+}
+else if (users == null || users.Count == 0)
+{
+    <p>No users available.</p>
+}
+else
+{
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <div class="row">
+                <div class="col-lg-4">
+                    <RadzenDropDown Data="@users"
+                                    TextProperty="UserName"
+                                    ValueProperty="UserId"
+                                    @bind-Value="selectedUserId"
+                                    Placeholder="Select User Name"
+                                    AllowFiltering="true"
+                                    AllowClear="true"
+                                    Virtualization="true"
+                                    FilterOperator="StringFilterOperator.StartsWith"
+                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                    Change="OnUserChanged" />
+
+                </div>
+            </div>          
+        </div>
+    </div>
+
+    @if (categorizedSettings.Count > 0)
+    {
+        <ul class="nav nav-tabs" id="userTabs" role="tablist">
+            @foreach (var module in categorizedSettings.Keys)
+            {
+                var moduleId = module.Replace(" ", "").ToLower();
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link @(module == activeModule ? "active" : "")"
+                            @onclick="() => SelectTab(module)">
+                        @module
+                    </button>
+                </li>
+            }
+        </ul>
+
+        <div class="tab-content mt-3">
+            @foreach (var kvp in categorizedSettings)
+            {
+                var module = kvp.Key;
+                var screens = kvp.Value;
+                var color = colorTriggers.FirstOrDefault(c => c.Value.module == module).Value.color ?? "black";
+                var moduleId = module.Replace(" ", "").ToLower();
+
+                <div class="tab-pane fade @(module == activeModule ? "show active" : "")" id="@moduleId" role="tabpanel">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:38%">Screen Name</th>
+                                <th style="width:15%" class="text-center">
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <input type="checkbox" @onchange="e => ToggleAllAdd(e, module)"
+                                               checked="@screens.All(r => r.AdditionPrivileges || ScreenPrivileges.GetRestrictions(r.ScreenName).DisableAdd)" />
+                                        <label class="ms-2">Add ALL</label>
+                                    </div>
+                                </th>
+                                <th style="width:15%" class="text-center">
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <input type="checkbox" @onchange="e => ToggleAllEdit(e, module)"
+                                               checked="@screens.All(r => r.EditPrivileges || ScreenPrivileges.GetRestrictions(r.ScreenName).DisableEdit)" />
+                                        <label class="ms-2">Edit ALL</label>
+                                    </div>
+                                </th>
+                                <th style="width:17%" class="text-center">
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <input type="checkbox" @onchange="e => ToggleAllDelete(e, module)"
+                                               checked="@screens.All(r => r.DeletePrivileges || ScreenPrivileges.GetRestrictions(r.ScreenName).DisableDelete)" />
+                                        <label class="ms-2">Delete ALL</label>
+                                    </div>
+                                </th>
+                                <th style="width:15%" class="text-center">
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <input type="checkbox" @onchange="e => ToggleAllView(e, module)"
+                                               checked="@screens.All(r => r.ViewPrivileges || ScreenPrivileges.GetRestrictions(r.ScreenName).DisableView)" />
+                                        <label class="ms-2">View ALL</label>
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var s in screens)
+                            {
+                                var restriction = ScreenPrivileges.GetRestrictions(s.ScreenName);
+
+                                <tr title="@module">
+                                    <td>@s.ScreenName</td>
+                                    <td class="text-center"><input type="checkbox" @bind="s.AdditionPrivileges" disabled="@restriction.DisableAdd" /></td>
+                                    <td class="text-center"><input type="checkbox" @bind="s.EditPrivileges" disabled="@restriction.DisableEdit" /></td>
+                                    <td class="text-center"><input type="checkbox" @bind="s.DeletePrivileges" disabled="@restriction.DisableDelete" /></td>
+                                    <td class="text-center"><input type="checkbox" @bind="s.ViewPrivileges" disabled="@restriction.DisableView" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="mt-3 d-flex gap-2">
+
+        <button type="button"
+                class="btn btn-primary"
+                @onclick="SubmitUserSettings"
+                disabled="@IsSubmitting">
+            @if (IsSubmitting)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span>Submitting...</span>
+            }
+            else
+            {
+                <span>Submit</span>
+            }
+        </button>
+
+        <button class="btn btn-secondary" @onclick="ResetGrid">Reset</button>
+    </div>
+}

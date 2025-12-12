@@ -1,204 +1,100 @@
 @page "/admin/lateinterestamount"
 @using Radzen
 @using Radzen.Blazor
+@using ppfc.DTO
 @attribute [Authorize]
+@inject HttpClient Http
 @inject NotificationService NotificationService
+@inject DialogService DialogService
 
-<h4 class="mb-3">Late Interest Amount</h4>
+<RadzenNotification />
 
+<PageTitle>Late Interest Amount</PageTitle>
 
-<div class="d-flex justify-content-end mb-2">
-    <RadzenButton Icon="add_circle" Text="Add Row" Click="AddRow" ButtonStyle="ButtonStyle.Secondary" />
-</div>
+<h3 class="mb-3">Late Interest Amount</h3>
 
-<RadzenDataGrid @ref="grid" TItem="InstallmentRecord" Data="InstallmentList" EditMode="DataGridEditMode.Single"
-  AllowPaging="true" PageSize="10" AllowSorting="true" AllowFiltering="false">
-  <Columns>
-
-    <RadzenDataGridColumn TItem="InstallmentRecord" Property="BranchName" Title="Branch Name" Width="260px">
-      <Template Context="item">@item.BranchName</Template>
-      <EditTemplate Context="item">
-        <RadzenDropDown Data="Branches" TextProperty="Name" ValueProperty="Id" @bind-Value="editItem.BranchId"
-          Style="width:100%" />
-      </EditTemplate>
-    </RadzenDataGridColumn>
-
-    <RadzenDataGridColumn TItem="InstallmentRecord" Property="InstallmentNo" Title="Installment No" Width="150px">
-      <Template Context="item">@item.InstallmentNo</Template>
-      <EditTemplate Context="item">
-        <RadzenNumeric @bind-Value="editItem.InstallmentNo" Min="1" Style="width:100%" />
-      </EditTemplate>
-    </RadzenDataGridColumn>
-
-    <RadzenDataGridColumn TItem="InstallmentRecord" Property="Amount" Title="Amount" Width="150px">
-      <Template Context="item">@item.Amount.ToString("F2")</Template>
-      <EditTemplate Context="item">
-        <RadzenNumeric @bind-Value="editItem.Amount" Min="0" Step="0.01" Style="width:100%" />
-      </EditTemplate>
-    </RadzenDataGridColumn>
-
-    <RadzenDataGridColumn TItem="InstallmentRecord" Title="Actions" Width="180px">
-      <Template Context="item">
-        <RadzenButton Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
-          Click="@(args => EditRow(item))" Style="margin-right:6px" />
-        <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
-          Click="@(args => DeleteRow(item))" />
-      </Template>
-
-      <EditTemplate Context="item">
-        <RadzenButton Icon="save" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Primary"
-          Click="@(args => SaveRow(item))" Style="margin-right:6px" />
-        <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
-          Click="@(args => DeleteRow(item))" Style="margin-right:6px" />
-        <RadzenButton Icon="close" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
-          Click="@(args => CancelEdit(item))" />
-      </EditTemplate>
-    </RadzenDataGridColumn>
-
-  </Columns>
-</RadzenDataGrid>
-
-
-@code {
-  private RadzenDataGrid<InstallmentRecord> grid;
-
-  // Branch dropdown list
-  private List<BranchItem> Branches = new List<BranchItem>
+@if (IsLoading)
 {
-new BranchItem { Id = 1, Name = "THADITHOTA (RJY)" },
-new BranchItem { Id = 2, Name = "RAJAHMUNDRY MAIN" },
-new BranchItem { Id = 3, Name = "KAKINADA" }
-};
-
-  // Main grid data
-  private List<InstallmentRecord> InstallmentList = new()
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading branches...</p>
+    </div>
+}
+else
 {
-new InstallmentRecord { BranchId = 1, BranchName = "THADITHOTA (RJY)", InstallmentNo = 1, Amount = 0.00m },
-new InstallmentRecord { BranchId = 1, BranchName = "THADITHOTA (RJY)", InstallmentNo = 2, Amount = 425.00m },
-new InstallmentRecord { BranchId = 1, BranchName = "THADITHOTA (RJY)", InstallmentNo = 3, Amount = 425.00m }
-};
+    <div class="col-md-3">
+        <label>Branch</label>
+        <select class="form-select" value="@selectedBranchId" @onchange="OnBranchChanged">
+            <option value="0">All</option>
+            @foreach (var b in branches)
+            {
+                <option value="@b.BranchId">@b.BranchName</option>
+            }
+        </select>
+    </div>
 
-  private EditInstallmentItem editItem = new EditInstallmentItem();
+    <div class="d-flex justify-content-end mb-2">
+        <RadzenButton Icon="add_circle" Text="Add New" Click="AddNew" ButtonStyle="ButtonStyle.Secondary" />
+    </div>
 
-  private async Task AddRow()
-  {
-    var newRecord = new InstallmentRecord();
-    InstallmentList.Insert(0, newRecord);
-    await grid.Reload();
-    await Task.Yield();
-    grid.EditRow(newRecord);
-    editItem = new EditInstallmentItem();
-  }
+    <RadzenDataGrid @ref="grid" TItem="CampChargeAmountDto" Data="@campcharges" EditMode="DataGridEditMode.Single"
+                    AllowPaging="true" PageSize="10" AllowSorting="true" AllowFiltering="false" PagerHorizontalAlign="HorizontalAlign.Right">
+        <Columns>
 
-  private async Task EditRow(InstallmentRecord item)
-  {
-    editItem = new EditInstallmentItem
-    {
-      BranchId = item.BranchId,
-      InstallmentNo = item.InstallmentNo,
-      Amount = item.Amount
-    };
-    grid.EditRow(item);
-    await Task.Yield();
-  }
+            <RadzenDataGridColumn TItem="CampChargeAmountDto" Property="BranchName" Title="Branch Name" Width="260px">
+                <Template Context="item">@item.BranchName</Template>
+                <EditTemplate Context="item">
+                    @if (item.IsNew)
+                    {
+                        <RadzenDropDown Data="@branches" TextProperty="BranchName" ValueProperty="BranchId" @bind-Value="item.BranchId"
+                        Style="width:100%" 
+                        Placeholder="Select Branch"/>
+                    }
+                    else
+                    {
+                        <span>@item.BranchName</span>
+                    }
+                </EditTemplate>
+            </RadzenDataGridColumn>
 
-  private async Task SaveRow(InstallmentRecord item)
-  {
-    // Validation
-    if (!editItem.BranchId.HasValue)
-    {
-      NotificationService.Notify(new NotificationMessage
-      {
-        Severity = NotificationSeverity.Warning,
-        Summary = "Validation",
-        Detail = "Please select a Branch.",
-        Duration = 3000
-      });
-      return;
-    }
-    if (!editItem.InstallmentNo.HasValue)
-    {
-      NotificationService.Notify(new NotificationMessage
-      {
-        Severity = NotificationSeverity.Warning,
-        Summary = "Validation",
-        Detail = "Please enter Installment No.",
-        Duration = 3000
-      });
-      return;
-    }
+            <RadzenDataGridColumn TItem="CampChargeAmountDto" Property="InstallmentNo" Title="Installment No" Width="150px">
+                <Template Context="item">@item.InstallmentNo</Template>
+                <EditTemplate Context="item">
+                    @if (item.IsNew)
+                    {
+                        <RadzenNumeric @bind-Value="item.InstallmentNo" Min="1" Style="width:100%" />
+                    }
+                    else
+                    {
+                        <span>@item.InstallmentNo</span>
+                    }
+                </EditTemplate>
+            </RadzenDataGridColumn>
 
-    // Save data
-    var branch = Branches.FirstOrDefault(b => b.Id == editItem.BranchId.Value);
-    item.BranchId = editItem.BranchId.Value;
-    item.BranchName = branch?.Name ?? "Unknown";
-    item.InstallmentNo = editItem.InstallmentNo.Value;
-    item.Amount = editItem.Amount;
+            <RadzenDataGridColumn TItem="CampChargeAmountDto" Property="Amount" Title="Amount" Width="150px">
+                <Template Context="item">@item.Amount.ToString("F2")</Template>
+                <EditTemplate Context="item">
+                    <RadzenNumeric @bind-Value="item.Amount" Min="0" Step="0.01" Style="width:100%" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
 
-    await grid.UpdateRow(item);
-    grid.CancelEditRow(item);
-    await grid.Reload();
+            <RadzenDataGridColumn TItem="CampChargeAmountDto" Title="Actions" Width="180px">
+                <Template Context="item">
+                    <RadzenButton Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                  Click="@(args => EditCampCharge(item))" Style="margin-right:6px" />
+                    <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
+                                  Click="@(args => DeleteCampCharge(item))" />
+                </Template>
 
-    NotificationService.Notify(new NotificationMessage
-    {
-      Severity = NotificationSeverity.Success,
-      Summary = "Saved",
-      Detail
-    = "Row saved successfully.",
-      Duration = 3000
-    });
-  }
+                <EditTemplate Context="item">
+                    <RadzenButton Icon="save" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Primary"
+                                  Click="@(args => SaveCampCharge(item))" Style="margin-right:6px" />
+                    <RadzenButton Icon="close" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                  Click="@(args => CancelEdit(item))" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
 
-  private async Task DeleteRow(InstallmentRecord item)
-  {
-    try { grid.CancelEditRow(item); } catch { }
+        </Columns>
+    </RadzenDataGrid>
 
-    if (InstallmentList.Contains(item))
-    {
-      InstallmentList.Remove(item);
-      await grid.Reload();
-
-      NotificationService.Notify(new NotificationMessage
-      {
-        Severity = NotificationSeverity.Info,
-        Summary = "Deleted",
-        Detail = "Row deleted successfully.",
-        Duration = 3000
-      });
-    }
-  }
-
-  private async Task CancelEdit(InstallmentRecord item)
-  {
-    grid.CancelEditRow(item);
-
-    // Remove blank row if canceled while adding
-    if (string.IsNullOrEmpty(item.BranchName) && item.InstallmentNo == 0 && item.Amount == 0)
-    {
-      InstallmentList.Remove(item);
-      await grid.Reload();
-    }
-  }
-
-  // Models
-  public class BranchItem
-  {
-    public int Id { get; set; }
-    public string Name { get; set; }
-  }
-
-  public class InstallmentRecord
-  {
-    public int BranchId { get; set; }
-    public string BranchName { get; set; }
-    public int InstallmentNo { get; set; }
-    public decimal Amount { get; set; }
-  }
-
-  public class EditInstallmentItem
-  {
-    public int? BranchId { get; set; }
-    public int? InstallmentNo { get; set; }
-    public decimal Amount { get; set; }
-  }
 }

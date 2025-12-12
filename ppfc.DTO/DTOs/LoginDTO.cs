@@ -38,4 +38,11 @@ namespace ppfc.DTO
         // Existing login info + privileges
         public LoginPrivilegeDto LoginData { get; set; }
     }
+
+    public class NewsDto
+    {
+        public string Message { get; set; } = string.Empty;
+        public DateTime DateTime { get; set; }
+    }
+
 }

@@ -1,0 +1,58 @@
+﻿@page "/admin/smssettings"
+@using ppfc.DTO
+@using Radzen
+@using Radzen.Blazor
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenNotification />
+
+<PageTitle>SMS Settings</PageTitle>
+
+<h3 class="mb-3">SMS Settings</h3>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading sms settings...</p>
+    </div>
+}
+else
+{
+    <RadzenDataGrid @ref="grid" TItem="BusinessSMSDto" Data="@smsSettings" EditMode="DataGridEditMode.Single" AllowPaging="true" PageSize="10" AllowSorting="true" AllowFiltering="false" PagerHorizontalAlign="HorizontalAlign.Right">
+        <Columns>
+
+            <RadzenDataGridColumn TItem="BusinessSMSDto" Property="UserId" Title="User Id">
+                <Template Context="smssetting">
+                    @smssetting.UserId
+                </Template>
+                <EditTemplate Context="smssetting">
+                    <RadzenTextBox Style="width:100%" @bind-Value="smssetting.UserId" Placeholder="Enter User Id" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="BusinessSMSDto" Property="Password" Title="Password">
+                <Template Context="smssetting">
+                    @smssetting.Password
+                </Template>
+                <EditTemplate Context="smssetting">
+                    <RadzenTextBox Style="width:100%" @bind-Value="smssetting.Password" Placeholder="Enter Password" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="BusinessSMSDto" Title="Actions" Width="150px">
+                <Template Context="smssetting">
+                    <RadzenButton Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="@(args => EditSettings(smssetting))" Style="background:transparent;color: #000;margin-right:6px" />
+                </Template>
+                <EditTemplate Context="smssetting">
+                    <RadzenButton Icon="save" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Primary" Click="@(args => SaveSettings(smssetting))" Style="margin-right:6px;" />
+                    <RadzenButton Icon="close" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="@(args => CancelEdit(smssetting))" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+
+}

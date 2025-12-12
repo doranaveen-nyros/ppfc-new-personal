@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using ppfc.API.Services;
 using ppfc.DTO;
@@ -20,13 +21,15 @@ namespace ppfc.API.Controllers
         private readonly SmsService _smsService;
         private readonly ClosingBalanceService _closingSvc;
         private readonly ILogger<LoginController> _logger;
+        private readonly IMemoryCache _cache;
 
-        public LoginController(IConfiguration configuration, SmsService smsService, ClosingBalanceService closingSvc, ILogger<LoginController> logger)
+        public LoginController(IConfiguration configuration, SmsService smsService, ClosingBalanceService closingSvc, ILogger<LoginController> logger, IMemoryCache cache)
         {
             _configuration = configuration;
             _smsService = smsService;
             _closingSvc = closingSvc;
             _logger = logger;
+            _cache = cache;
         }
 
         private SqlConnection GetConnection()
@@ -71,6 +74,10 @@ namespace ppfc.API.Controllers
 
                 if (response != null)
                 {
+                    // Store in memory cache for app-wide usage
+                    _cache.Set("CompanyId", response.CompanyId, TimeSpan.FromHours(2));      // optional expiration
+                    _cache.Set("UserName", response.UserName, TimeSpan.FromHours(2));
+
                     // Now get privileges for this user
                     var cmdPrivileges = new SqlCommand("Select_sp_ScreenPrivileges", con)
                     {
@@ -99,16 +106,13 @@ namespace ppfc.API.Controllers
             // Run closing balance check for the user's company
             try
             {
-                //await _closingSvc.CheckClosingBalanceAsync(response.CompanyId);
-                //await _smsService.CallInstSMSAsync(response.BranchId,response.CompanyId,response.CompanyName,response.UserName);
-
                 // Run non-critical tasks in background — don't block login
                 _ = Task.Run(async () =>
                 {
                     try
                     {
                         await _closingSvc.CheckClosingBalanceAsync(response.CompanyId);
-                        await _smsService.CallInstSMSAsync(response.BranchId, response.CompanyId, response.CompanyName, response.UserName);
+                        //await _smsService.CallInstSMSAsync(response.BranchId, response.CompanyId, response.CompanyName, response.UserName);
                     }
                     catch (Exception ex)
                     {
@@ -171,20 +175,64 @@ namespace ppfc.API.Controllers
             await _smsService.LoadBusinessSMSSPPFAsync();
             await _smsService.CampChargeInMonthAsync();
             await _smsService.MoveSentSMSAsync();
-            await _smsService.SendSMSAdminAsync();
-            await _smsService.SendSMSAdminSPPFinAsync();
+            //await _smsService.SendSMSAdminAsync();
+            //await _smsService.SendSMSAdminSPPFinAsync();
 
             return Ok("All methods executed successfully.");
         }
 
+        [HttpGet("GetNews")]
+        public IActionResult GetNews()
+        {
+            try
+            {
+                using (var conn = GetConnection())
+                {
+                    conn.Open();
+
+                    var query = @"
+                SELECT TOP 5 Message, DateTime
+                FROM Message
+                ORDER BY DateTime DESC";
+
+                    using (var cmd = new SqlCommand(query, conn))
+                    {
+                        var list = new List<NewsDto>();
+
+                        using (var dr = cmd.ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                list.Add(new NewsDto
+                                {
+                                    Message = dr["Message"].ToString()!,
+                                    DateTime = Convert.ToDateTime(dr["DateTime"])
+                                });
+                            }
+                        }
+
+                        return Ok(list);
+                    }
+                }
+            }
+            catch (SqlException ex)
+            {
+                return StatusCode(500, new
+                {
+                    Message = "Failed to load news.",
+                    Error = ex.Message
+                });
+            }
+        }
+
         #region Helper Methods
 
-        
 
 
-        
 
-            #endregion
 
-        }
+
+        #endregion
+
+    }
 }

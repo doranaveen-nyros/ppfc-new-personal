@@ -1,0 +1,65 @@
+﻿@page "/master/interest"
+@using Radzen
+@using Radzen.Blazor
+@using ppfc.DTO
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenNotification />
+
+<PageTitle>Interest</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading interests...</p>
+    </div>
+}
+else
+{
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div><h3 class="mb-0">Interest</h3></div>
+    </div>
+
+    <RadzenDataGrid @ref="grid" Data="@interests" TItem="InterestDto"
+                    EditMode="DataGridEditMode.Single"
+                    AllowPaging="true" PageSize="10"
+                    AllowSorting="true"
+                    Style="min-width:520px;">
+        <Columns>
+            <RadzenDataGridColumn TItem="InterestDto" Property="Type" Title="Type">
+                <Template Context="item">
+                    @item.Type
+                </Template>
+                @* <EditTemplate Context="item">
+                    <RadzenTextBox @bind-Value="item.Type" Style="width:100%;" />
+                </EditTemplate> *@
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="InterestDto" Property="Interest" Title="Amount">
+                <Template Context="item">@item.Interest.ToString("F2")</Template>
+                <EditTemplate Context="item">
+                    <RadzenNumeric @bind-Value="item.Interest" Min="0" Step="0.01" Style="width:100%" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="InterestDto" Title="Actions" Width="120px" TextAlign="TextAlign.Center">
+                <Template Context="item">
+                    @if (grid != null && grid.IsRowInEditMode(item))
+                    {
+                        <RadzenButton Icon="save" Size="ButtonSize.Small" Click="@(args => SaveInterest(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => CancelEdit(item))" />
+                    }
+                    else
+                    {
+                        <RadzenButton Icon="edit" Size="ButtonSize.Small" Click="@(args => EditInterest(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => DeleteInterest(item))" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}

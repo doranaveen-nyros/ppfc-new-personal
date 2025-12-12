@@ -1,0 +1,183 @@
+﻿@page "/master/area"
+@using Radzen
+@using Radzen.Blazor
+@using ppfc.DTO
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenNotification />
+
+<PageTitle>Area</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading areas...</p>
+    </div>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="mb-0">Areas</h3>
+        </div>
+        <div>
+            <RadzenButton Icon="add_circle" Text="Add New" Click="@AddNew" Style="margin-left:8px;" ButtonStyle="ButtonStyle.Secondary" />
+        </div>
+    </div>
+
+    <RadzenDataGrid @ref="grid" Data="@areas" TItem="AreasDto"
+                    EditMode="DataGridEditMode.Single"
+                    AllowPaging="true" PageSize="10"
+                    AllowSorting="true"
+                    AllowFiltering="true"
+                    FilterMode="FilterMode.Simple"
+                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                    Style="min-width:800px;"
+                    PagerHorizontalAlign="HorizontalAlign.Right">
+        <Columns>
+            <RadzenDataGridColumn TItem="AreasDto" Property="BranchName" Title="Branch Name" Width="30%" FilterPlaceholder="Search Branch">
+                <EditTemplate Context="item">
+                    <RadzenDropDown Data="@branches"
+                                    TextProperty="BranchName"
+                                    ValueProperty="BranchId"
+                                    @bind-Value="item.BranchId"
+                                    AllowFiltering="true"
+                                    Placeholder="Select Branch"
+                                    AllowClear="true"
+                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="AreasDto" Property="AreaName" Title="Area Name" Width="35%" FilterPlaceholder="Search Area">
+                <EditTemplate Context="item">
+                    <RadzenTextBox @bind-Value="item.AreaName" Style="width:100%;" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="AreasDto" Property="AreaCode" Title="Area Code" Width="10%" FilterPlaceholder="Search Code">
+                <EditTemplate Context="item">
+                    <span>@item.AreaCode</span>
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="AreasDto" Property="Lock" Title="Lock" Filterable="false" TextAlign="TextAlign.Center">
+                <Template Context="item">
+                    <RadzenSwitch TValue="bool"
+                                  Value="@item.Lock"
+                                  Change="@(async (bool newValue) => await ToggleLockAsync(item, newValue))" />
+                </Template>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="AreasDto" Title="Actions" Filterable="false" Width="120px" TextAlign="TextAlign.Center">
+                <Template Context="item">
+                    @if (grid != null && grid.IsRowInEditMode(item))
+                    {
+                        <RadzenButton Icon="save" Size="ButtonSize.Small" Click="@(args => SaveArea(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => CancelEdit(item))" />
+                    }
+                    else
+                    {
+                        <RadzenButton Icon="edit" Size="ButtonSize.Small" Click="@(args => EditArea(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => DeleteArea(item))" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+
+
+
+@code {
+
+
+    private bool IsCurrentStepValid = true;
+
+    // --- Steps state ---
+    private int SelectedStepIndex = 0;
+    // --- Step 0: Search ---
+    string SearchSurname, SearchAdharNo, SearchVehicleNo, SearchMobileNo;
+    DateTime FromDate = DateTime.Today.AddDays(-30), ToDate = DateTime.Today;
+    int? SelectedAccountNo, SelectedBranchId, SelectedAutoConsultantId;
+    string RecordStatus;
+    int? HpEntryId;
+
+    // --- Step 1: Applicant ---
+    int? SelectedAreaId, SelectedMandalId, SelectedDistrictId;
+    string ApplicantSurname, ApplicantName, ApplicantSO;
+    int? ApplicantAge;
+    string ApplicantMobileNo, ApplicantLandNo, ApplicantTown, Occupation;
+    bool ResidenceProof, IncomeProof;
+    string Address, WhatsAppNumber, AadharNumber, FacebookProfile;
+    DateTime? DateOfBirth;
+
+    // --- Step 2: Vehicle ---
+    int? SelectedVehicleMakeId; string VehicleNo, EngineNo, ChassisNo;
+    decimal? MarketValue, FundingPercentage;
+    bool SaleLetter, FinanceClearLetter, CBook, NoTR;
+    DateTime? InsuranceDate; string BankName, BankAccountNo;
+
+    // --- Step 3: Finance ---
+    decimal? FinanceAmount, PdrAmount, RtoPending, RecordsPending, HpCharges;
+    int? Installments, AgreementById;
+    string VerifiedBy, Description;
+    DateTime? AdjustmentDate;
+
+    // --- Mock dropdown data (compiles/runs) ---
+    record Opt(int Value, string Text);
+    IEnumerable<Opt> Accounts = new[] { new Opt(1, "A-001"), new Opt(2, "A-002") };
+    IEnumerable<Opt> Branches = new[] { new Opt(1, "Main"), new Opt(2, "City") };
+    IEnumerable<Opt> Consultants = new[] { new Opt(1, "Consultant A"), new Opt(2, "Consultant B") };
+    IEnumerable<string> RecordStatusOptions = new[] { "Ok", "Pending" };
+    IEnumerable<Opt> Areas = new[] { new Opt(1, "Area 1"), new Opt(2, "Area 2") };
+    IEnumerable<Opt> Mandals = new[] { new Opt(1, "Mandal 1"), new Opt(2, "Mandal 2") };
+    IEnumerable<Opt> Districts = new[] { new Opt(1, "District 1"), new Opt(2, "District 2") };
+    IEnumerable<Opt> VehicleMakes = new[] { new Opt(1, "Make A"), new Opt(2, "Make B") };
+    IEnumerable<Opt> AgreementBys = new[] { new Opt(1, "Agent A"), new Opt(2, "Agent B") };
+
+    // --- Navigation + validation guards ---
+    void GoPrev() => SelectedStepIndex = Math.Max(0, SelectedStepIndex - 1);
+
+    async Task GoNext()
+    {
+        if (await ValidateStepAsync(SelectedStepIndex))
+            SelectedStepIndex = Math.Min(4, SelectedStepIndex + 1);
+    }
+
+    // IMPORTANT: async signature + PreventDefault when invalid
+    async Task OnCanChange(StepsCanChangeEventArgs args)
+    {
+        var ok = await ValidateStepAsync(SelectedStepIndex);
+        if (!ok) args.PreventDefault();
+        if (!IsCurrentStepValid) { args.PreventDefault(); }
+    }
+
+    Task<bool> ValidateStepAsync(int step) => step switch
+    {
+        0 => Task.FromResult(
+               !string.IsNullOrWhiteSpace(SearchSurname)
+            || !string.IsNullOrWhiteSpace(SearchAdharNo)
+            || !string.IsNullOrWhiteSpace(SearchVehicleNo)
+            || !string.IsNullOrWhiteSpace(SearchMobileNo)),
+        1 => Task.FromResult(!string.IsNullOrWhiteSpace(ApplicantName) && SelectedDistrictId.HasValue),
+        2 => Task.FromResult(SelectedVehicleMakeId.HasValue && !string.IsNullOrWhiteSpace(VehicleNo) && !string.IsNullOrWhiteSpace(ChassisNo)),
+        3 => Task.FromResult(FinanceAmount.HasValue && Installments.HasValue),
+        _ => Task.FromResult(true)
+    };
+
+    void ResetSearch()
+    {
+        SearchSurname = SearchAdharNo = SearchVehicleNo = SearchMobileNo = null;
+        FromDate = DateTime.Today.AddDays(-30);
+        ToDate = DateTime.Today;
+        SelectedAccountNo = SelectedBranchId = SelectedAutoConsultantId = null;
+        RecordStatus = null; HpEntryId = null;
+    }
+
+    Task CheckVehicle() => Task.CompletedTask;
+    Task SubmitEntry() => Task.CompletedTask;
+}

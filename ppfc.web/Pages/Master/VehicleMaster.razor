@@ -1,0 +1,74 @@
+﻿@page "/master/vehicle-master"
+@using Radzen
+@using Radzen.Blazor
+@using ppfc.DTO
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenNotification />
+
+<PageTitle>Vehicle Master</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading vehicles...</p>
+    </div>
+}
+else
+{
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div><h3 class="mb-0">Vehicle Master </h3></div>
+        <div>
+            <RadzenButton Icon="add_circle" Text="Add New" Click="@AddNew" ButtonStyle="ButtonStyle.Secondary" />
+        </div>
+    </div>
+
+    <RadzenDataGrid @ref="grid" Data="@vehicles" TItem="VehicleDto"
+                    EditMode="DataGridEditMode.Single"
+                    AllowPaging="true" PageSize="10"
+                    AllowSorting="true"
+                    AllowFiltering="true"
+                    
+                    FilterMode="FilterMode.Simple"
+                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                    Style="min-width:700px;" PagerHorizontalAlign="HorizontalAlign.Right">
+        <Columns>
+            <RadzenDataGridColumn TItem="VehicleDto" Property="VehicleName" Title="Vehicle Name" FilterPlaceholder="Search Vehicle">
+                <Template Context="item">
+                    @item.VehicleName
+                </Template>
+                <EditTemplate Context="item">
+                    <RadzenTextBox @bind-Value="item.VehicleName" Style="width:100%;" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="VehicleDto" Property="VehicleCode" Title="Vehicle Code" Filterable="false">
+                <Template Context="item">
+                    @item.VCode
+                </Template>
+                <EditTemplate Context="item">
+                    <RadzenTextBox @bind-Value="item.VCode" Style="width:100%;" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="VehicleDto" Title="Actions" Width="120px" TextAlign="TextAlign.Center">
+                <Template Context="item">
+                    @if (grid != null && grid.IsRowInEditMode(item))
+                    {
+                        <RadzenButton Icon="save" Size="ButtonSize.Small" Click="@(args => SaveVehicle(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => CancelEdit(item))" />
+                    }
+                    else
+                    {
+                        <RadzenButton Icon="edit" Size="ButtonSize.Small" Click="@(args => EditVehicle(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => DeleteVehicle(item))" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}

@@ -1,0 +1,106 @@
+﻿@page "/master/rtoagent"
+@using Radzen
+@using Radzen.Blazor
+@using ppfc.DTO
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenNotification />
+
+<PageTitle>RTO Agent</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading RTO Agents...</p>
+    </div>
+}
+else
+{
+    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+        <div><h3 class="mb-0">RTO Agent</h3></div>
+        <div>
+            <RadzenButton Icon="download" Text="Export CSV"
+                          Click="@ExportToCSV"
+                          ButtonStyle="ButtonStyle.Dark"
+                          Style="margin-right:10px; border-radius: 4px;" />
+
+            <RadzenButton Icon="add_circle" Text="Add New" Click="@AddNew" ButtonStyle="ButtonStyle.Secondary" />
+        </div>
+    </div>
+
+    <RadzenDataGrid @ref="grid"
+                    Data="@rtoAgents"
+                    TItem="RTOAgentDto"
+                    EditMode="DataGridEditMode.Single"
+                    AllowPaging="true"
+                    AllowFiltering="true"
+                    FilterMode="FilterMode.Simple"
+                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                    PageSize="10"
+                    PageSizeOptions="@(new int[] {10, 50, 100, rtoAgents.Count })"
+                    AllowSorting="true"
+                    Style="min-width:820px;"
+                    PagerHorizontalAlign="HorizontalAlign.Right">
+
+        <Columns>
+            <!-- Agent Name -->
+            <RadzenDataGridColumn TItem="RTOAgentDto" Property="RTOAgentName" Title="RTO Agent Name" Width="32%" FilterPlaceholder="Search RTO Agent">
+                <Template Context="item">@item.RTOAgentName</Template>
+                <EditTemplate Context="item">
+                    <RadzenTextBox @bind-Value="item.RTOAgentName" Style="width:100%;" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <!-- Phone -->
+            <RadzenDataGridColumn TItem="RTOAgentDto" Property="PhoneNo" Title="Phone" Width="18%" FilterPlaceholder="Search Phone No">
+                <Template Context="item">@item.PhoneNo</Template>
+                <EditTemplate Context="item">
+                    <RadzenTextBox @bind-Value="item.PhoneNo" Style="width:100%;" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <!-- Branch (dropdown in edit) -->
+            <RadzenDataGridColumn TItem="RTOAgentDto" Property="BranchName" Title="Branch" Width="25%" FilterPlaceholder="Search Branch">
+                <EditTemplate Context="item">
+                    <RadzenDropDown Data="@branches"
+                                    TextProperty="BranchName"
+                                    ValueProperty="BranchId"
+                                    @bind-Value="item.BranchId"
+                                    AllowFiltering="true"
+                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                    Placeholder="Select branch"
+                                    Style="width:100%;" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <!-- Lock switch -->
+            <RadzenDataGridColumn TItem="RTOAgentDto" Property="LockAgent" Title="Lock" Width="10%" Filterable="false">
+                <Template Context="item">
+                    <RadzenSwitch TValue="bool"
+                                  Value="@item.LockAgent"
+                                  Change="@(async (bool newValue) => await ToggleLockAsync(item, newValue))" />
+                </Template>
+            </RadzenDataGridColumn>
+
+            <!-- Actions -->
+            <RadzenDataGridColumn TItem="RTOAgentDto" Title="Actions" Width="15%">
+                <Template Context="item">
+                    @if (grid != null && grid.IsRowInEditMode(item))
+                    {
+                        <RadzenButton Icon="save" Size="ButtonSize.Small" Click="@(args => SaveRTOAgent(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="cancel" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="@(args => CancelEdit(item))" />
+                    }
+                    else
+                    {
+                        <RadzenButton Icon="edit" Size="ButtonSize.Small" Click="@(args => EditRTOAgent(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Click="@(async args => await DeleteRTOAgent(item))" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}

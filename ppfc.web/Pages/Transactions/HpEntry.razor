@@ -1,0 +1,714 @@
+﻿@page "/transactions/hpentry"
+@using Radzen
+@using Radzen.Blazor
+@using ppfc.DTO
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenNotification />
+
+<PageTitle>HP Entry</PageTitle>
+
+<h3>HP Entry</h3>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading HP Entry...</p>
+    </div>
+}
+else
+{
+    <RadzenStack Class="rz-p-4" Gap="2rem" Style="max-width: 1300px; margin: 0 auto;">
+
+
+        <!-- Steps Component -->
+        <RadzenCard Class="rz-py-2">
+            <RadzenSteps @bind-SelectedIndex="SelectedStepIndex" Change="OnStepChange">
+                <Steps>
+                    <!-- Step 0: Search / Filter -->
+                    <RadzenStepsItem Text="Search & Filter">
+                        <RadzenFieldset Text="Search / Filter" AllowCollapse="true" CollapseTitle="Search / Filter" class="mb-4 rz-mb-4">
+                            <div class="row mb-2 justify-content-between">
+                                <div class="col-md-3">
+                                    <RadzenTextBox @bind-Value="hp.SurName" Name="SearchSurname" Placeholder="Surname" Style="width:100%" />
+                                </div>
+                                <div class="col-md-2">
+                                    <RadzenTextBox @bind-Value="hp.AdharNumber" Name="SearchAdharNo" Placeholder="Aadhar No" Style="width:100%" />
+                                </div>
+                                <div class="col-md-2">
+                                    <RadzenTextBox @bind-Value="hp.VehicleNumber" Name="SearchVehicleNo" Placeholder="Vehicle No" Style="width:100%" />
+                                </div>
+                                <div class="col-md-2">
+                                    <RadzenTextBox @bind-Value="hp.MobileNumber" Name="SearchMobileNo" Placeholder="Mobile No" Style="width:100%" />
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="button"
+                                            class="btn btn-primary"
+                                            @onclick="HpEntrySearch"
+                                            disabled="@IsSearchLoading">
+                                        @if (IsSearchLoading)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            <span>Searching...</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Search</span>
+                                        }
+                                    </button>
+                                    @* <RadzenButton Text="Search" Click="HpEntrySearch" Style="width:100%" ButtonStyle="ButtonStyle.Secondary" /> *@
+                                </div>
+                            </div>
+                            
+                        </RadzenFieldset>
+
+                        @if (hpRecords.Count > 0)
+                        {
+                            <RadzenDataGrid @ref="grid"
+                                            Data="@hpRecords"
+                                            TItem="HpPopupDto"
+                                            EditMode="DataGridEditMode.Single"
+                                            AllowPaging="true"
+                                            AllowFiltering="false"
+                                            FilterMode="FilterMode.Simple"
+                                            PageSize="10"
+                                            PageSizeOptions="@(new int[] {10, 50, 100, hpRecords.Count })"
+                                            ColumnWidth="120px"
+                                            AllowColumnPicking="true"
+                                            ColumnsPickerAllowFiltering="true"
+                                            AllowSorting="true"
+                                            FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                            PagerHorizontalAlign="HorizontalAlign.Right">
+                                <Columns>
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Property="HPEntry_Id" Title="HP No" FilterPlaceholder="Search Auto Consultant" Frozen="true" Width="80px" FrozenPosition="FrozenColumnPosition.Left">
+                                        <Template Context="item">@item.HPEntry_Id</Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Property="AdjustDate" Title="Date" Filterable="false">
+                                        <Template Context="item">@item.AdjustDate</Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Property="BranchName" Title="Branch Name" FilterPlaceholder="Search Phone No">
+                                        <Template Context="item">@item.BranchName</Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Property="SurName" Title="SurName" Filterable="false">
+                                        <Template Context="item">@item.SurName</Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Property="Name" Title="Name" Filterable="false">
+                                        <Template Context="item">@item.Name</Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Property="FatherName" Title="Father Name" Filterable="false">
+                                        <Template Context="item">@item.FatherName</Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Property="MobileNumber" Title="Mobile Number" Filterable="false">
+                                        <Template Context="item">@item.MobileNumber</Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Property="AdharNumber" Title="Adhar Number" FilterPlaceholder="Search Branch">
+                                        <Template Context="item">@item.AdharNumber</Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Property="VehicleNumber" Title="Vehicle Number" FilterPlaceholder="Search Branch">
+                                        <Template Context="item">@item.VehicleNumber</Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Property="VehicleName" Title="Vehicle Name" FilterPlaceholder="Search Branch">
+                                        <Template Context="item">@item.VehicleName</Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Property="Town" Title="Town" FilterPlaceholder="Search Branch">
+                                        <Template Context="item">@item.Town</Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Property="Address" Title="Address" FilterPlaceholder="Search Branch">
+                                        <Template Context="item">@item.Address</Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Title="A/C Close" Frozen="true" Width="160px" FrozenPosition="FrozenColumnPosition.Right" TextAlign="TextAlign.Center">
+                                        <Template Context="item">
+                                            @if (item.ACCloseId > 0)
+                                            {
+                                                <span style="color: red; font-weight:600;">CLOSED</span>
+                                            }
+                                            else
+                                            {
+                                                <span style="color: green; font-weight:600;">NOT CLOSED</span>
+                                            }
+                                        </Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Property="TotalDue" Title="Total Due" FilterPlaceholder="Search Branch">
+                                        <Template Context="item">@item.TotalDue</Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Title="Description" Width="220px">
+                                        <Template Context="item">
+                                            <RadzenTextArea @bind-Value="item.Description"
+                                                            Rows="3"
+                                                            Style="width:100%; font-size:13px;"
+                                                            Placeholder="Enter Description" />
+                                        </Template>
+                                    </RadzenDataGridColumn>
+
+                                    <RadzenDataGridColumn TItem="HpPopupDto" Title="Rep A/C Close" Width="160px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" TextAlign="TextAlign.Center">
+                                        <Template Context="item">
+                                            @if (item.ACCloseId > 0)
+                                            {
+                                                <span style="color:red; font-weight:600;">CLOSED</span>
+                                            }
+                                            else
+                                            {
+                                                <RadzenButton ButtonStyle="ButtonStyle.Info"
+                                                              Size="ButtonSize.Small"
+                                                              Disabled="@(IsClosingAccount == item.HpEntryId)"
+                                                              Click="@(args => CloseHpAccount(item))">
+
+                                                    @if (IsClosingAccount == item.HpEntryId)
+                                                    {
+                                                        <RadzenIcon Icon="hourglass_top" />
+                                                        <span> Closing...</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>Close Account</span>
+                                                    }
+                                                </RadzenButton>
+
+                                            }
+                                        </Template>
+                                    </RadzenDataGridColumn>
+
+
+
+                                </Columns>
+                            </RadzenDataGrid>
+                        }
+
+                    </RadzenStepsItem>
+
+                    <!-- Step 1: Filter / Populate -->
+                    <RadzenStepsItem Text="HP Search">
+                        <RadzenFieldset Text="Results">
+                            <div class="row mb-2">
+                                <div class="col-md-3">
+                                    <label>
+                                        From
+                                    </label>
+                                    <RadzenDatePicker @bind-Value="FromDate" Name="FromDate" Style="width:100%" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label>
+                                        To
+                                    </label>
+                                    <RadzenDatePicker @bind-Value="ToDate" Name="ToDate" Style="width:100%" />
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div>
+                                        &nbsp;
+                                    </div>
+                                    <RadzenDropDown TValue="int?"
+                                                    Data="@areas"
+                                                    @bind-Value="SelectedAreaId"
+                                                    TextProperty="AreaName"
+                                                    ValueProperty="AreaId"
+                                                    AllowFiltering="true"
+                                                    Placeholder="Select Area"
+                                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                                    Style="width:100%" />
+
+                                </div>
+                                <div class="col-md-3">
+                                    <div>
+                                        &nbsp;
+                                    </div>
+                                    <RadzenButton ButtonStyle="ButtonStyle.Secondary"
+                                                  Click="SearchByDateAndArea"
+                                                  Disabled="@IsLoadingbyArea"
+                                                  Style="min-width: 110px;">
+                                        @if (IsLoadingbyArea)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            <span>Searching...</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Search</span>
+                                        }
+                                    </RadzenButton>
+
+                                </div>
+
+
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-md-9">
+                                    <RadzenDropDown TValue="int?"
+                                                    Data="@HpEntryDropdown"
+                                                    @bind-Value="SelectedHpEntryId"
+                                                    TextProperty="VehicleNo"
+                                                    ValueProperty="HPEntryId"
+                                                    Disabled="IsSelectionLocked"
+                                                    Change="OnHpEntrySelected"
+                                                    Placeholder="Select HP Record"
+                                                    Style="width:100%" />
+
+
+                                </div>
+                                <div class="col-md-3 mt-2">
+                                    <h4>HPEntry Id: @SelectedHpEntryId.ToString()</h4>
+                                </div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-md-6">
+                                    <RadzenTextBox @bind-Value="SearchHpEntryId" Placeholder="Enter HP Entry ID" Style="width:100%" />
+                                </div>
+                                <div class="col-md-3">
+                                    <RadzenButton ButtonStyle="ButtonStyle.Secondary"
+                                                  Click="SearchByHpEntryId"
+                                                  Disabled="@IsLoadingbyId"
+                                                  Style="min-width: 100px;">
+                                        @if (IsLoadingbyId)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            <span>Searching...</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Search by Id</span>
+                                        }
+                                    </RadzenButton>
+                                </div>
+                                <div class="col-md-3">
+                                    <RadzenButton Text="Reset" Click="ResetSearch" Style="width:100%" ButtonStyle="ButtonStyle.Base" />
+                                </div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-md-4">
+                                    <RadzenDropDown TValue="int" Data="@branches"
+                                                    @bind-Value="HpDetails.BranchId"
+                                                    TextProperty="BranchName"
+                                                    ValueProperty="BranchId"
+                                                    Disabled="IsSelectionLocked"
+                                                    Change="OnBranchChanged"
+                                                    Name="BranchId"
+                                                    AllowFiltering="true"
+                                                    Placeholder="Select Branch"
+                                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                                    Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("BranchName")</span>
+
+                                </div>
+                                <div class="col-md-4">
+                                    <RadzenDropDown TValue="int?" Data="@consultants"
+                                                    @bind-Value="HpDetails.AutoConsultantId"
+                                                    Change="OnAutoConsultantChanged"
+                                                    TextProperty="AutoConsultantName"
+                                                    ValueProperty="AutoConsultantId"
+                                                    Name="SelectedAutoConsultantId"
+                                                    AllowFiltering="true"
+                                                    Placeholder="Auto Consultant"
+                                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                                    Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("AutoConsultant")</span>
+                                </div>
+                                <div class="col-md-4 mt-2">
+                                    <RadzenRadioButtonList TValue="int"
+                                                           @bind-Value="HpDetails.AutoConsultantPending"
+                                                           Change="OnRecordChanged"
+                                                           Orientation="Orientation.Horizontal"
+                                                           Style="width:200px;"
+                                                           Name="AutoConsultantPending">
+                                        <Items>
+                                            <RadzenRadioButtonListItem Text="Ok" Value="1" />
+                                            <RadzenRadioButtonListItem Text="Pending" Value="2" />
+                                        </Items>
+                                    </RadzenRadioButtonList>
+                                    @if (!string.IsNullOrEmpty(AutoConsultantErrorMessage))
+                                    {
+                                        <div class="text-danger">@AutoConsultantErrorMessage</div>
+                                    }
+                                </div>
+
+                            </div>
+
+                        </RadzenFieldset>
+                    </RadzenStepsItem>
+
+                    <!-- Step 2: Applicant Details -->
+                    <RadzenStepsItem Text="Applicant Details" Disabled="@(!AllowSteps)">
+                        <RadzenFieldset Text="Applicant / Customer Details">
+                            <div class="row mb-2">
+                                <div class="col-md-6">
+                                    <RadzenDropDown TValue="int?"
+                                                    Data="@areas"
+                                                    @bind-Value="HpDetails.AreaId"
+                                                    TextProperty="AreaName"
+                                                    ValueProperty="AreaId"
+                                                    Disabled="IsSelectionLocked"
+                                                    Change="OnAreaChanged"
+                                                    AllowFiltering="true"
+                                                    Placeholder="Select Area"
+                                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                                    Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("AreaId")</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <RadzenDropDown TValue="int?"
+                                                    Data="@mandals"
+                                                    @bind-Value="HpDetails.MandalId"
+                                                    TextProperty="MandalName"
+                                                    ValueProperty="MandalId"
+                                                    AllowFiltering="true"
+                                                    Placeholder="Select Mandal"
+                                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                                    Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("MandalId")</span>
+                                </div>
+
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-md-3">
+                                    <RadzenTextBox @bind-Value="HpDetails.SurName" Name="ApplicantSurname" Placeholder="Surname" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("SurName")</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <RadzenTextBox @bind-Value="HpDetails.Name" Name="ApplicantName" Placeholder="Name" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("Name")</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <RadzenTextBox @bind-Value="HpDetails.FatherName" Name="ApplicantSO" Placeholder="S/O" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("FatherName")</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <RadzenNumeric TValue="int?" @bind-Value="HpDetails.Age" Name="ApplicantAge" Placeholder="Age" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("Age")</span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-md-3">
+                                    <RadzenTextBox @bind-Value="HpDetails.MobileNumber" Name="ApplicantMobileNo" Placeholder="Mobile No" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("MobileNumber")</span>
+                                </div>
+                                <div class="col-md-3"><RadzenTextBox @bind-Value="HpDetails.LandNumber" Name="ApplicantLandNo" Placeholder="Land No" Style="width:100%" /></div>
+                                <div class="col-md-3">
+                                    <RadzenTextBox @bind-Value="HpDetails.Town" Name="ApplicantTown" Placeholder="Town" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("Town")</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <RadzenDropDown TValue="int"
+                                                    Data="@districts"
+                                                    @bind-Value="HpDetails.DistrictId"
+                                                    TextProperty="Name"
+                                                    ValueProperty="Id"
+                                                    AllowFiltering="true"
+                                                    Placeholder="Select District"
+                                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                                    Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("DistrictId")</span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-md-4">
+                                    <RadzenTextBox @bind-Value="HpDetails.Occupation" Name="Occupation" Placeholder="Occupation" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("Occupation")</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <RadzenCheckBox @bind-Value="HpDetails.ResidenceProof" Name="ResidenceProof" /> <label>Residence Proof</label>
+                                </div>
+                                <div class="col-md-4">
+                                    <RadzenCheckBox @bind-Value="HpDetails.IncomeProof" Name="IncomeProof" /> <label>Income Proof</label>
+                                </div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-md-8">
+                                    <RadzenTextArea @bind-Value="HpDetails.Address" Name="Address" Placeholder="Address" Rows="3" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("Address")</span>
+                                </div>
+                                <div class="col-md-4"><RadzenDatePicker @bind-Value="HpDetails.DOB" Name="DateOfBirth" Placeholder="DOB" Style="width:100%" /></div>
+
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-md-4">
+                                    <RadzenTextBox @bind-Value="HpDetails.WhatsappNumber" Name="WhatsAppNumber" Placeholder="WhatsApp Number" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("WhatsappNumber")</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <RadzenTextBox @bind-Value="HpDetails.AdharNumber"
+                                                   Name="AadharNumber"
+                                                   Placeholder="Aadhar Number"
+                                                   Style="width:100%"
+                                                   Change="@(args => CheckAadhar(HpDetails.AdharNumber))" />
+
+                                    <span class="text-danger d-inline">@ValidationMsg("AdharNumber")</span>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <RadzenTextBox @bind-Value="HpDetails.FaceBookId" Name="FacebookProfile" Placeholder="Facebook Profile" Style="width:100%" />
+                                </div>
+                            </div>
+
+                            <RadzenButton Text="Clear"
+                                          ButtonStyle="ButtonStyle.Info"
+                                          Click="@ClearStep2"
+                                          Icon="refresh"
+                                          class="mt-2" />
+
+
+                        </RadzenFieldset>
+                    </RadzenStepsItem>
+
+                    <!-- Step 3: Vehicle Details -->
+                    <RadzenStepsItem Text="Vehicle Details" Disabled="@(!AllowSteps)">
+                        <RadzenFieldset Text="Vehicle Details">
+                            <div class="row mb-2">
+                                <div class="col-md-3">
+                                    <RadzenDropDown TValue="int"
+                                                    Data="@vehicles"
+                                                    @bind-Value="HpDetails.VehicleId"
+                                                    TextProperty="VehicleName"
+                                                    ValueProperty="VehicleId"
+                                                    AllowFiltering="true"
+                                                    Placeholder="Select Vehicle"
+                                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                                    Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("VehicleId")</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="input-group">
+                                        <RadzenTextBox @bind-Value="HpDetails.VehicleNumber" Name="VehicleNo"
+                                                       Placeholder="Vehicle No" class="form-control" />
+
+                                        <button class="btn btn-primary" @onclick="CheckVehicle">Check</button>
+                                    </div>
+                                    <span class="text-danger d-inline">@ValidationMsg("VehicleNumber")</span>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div style="display:flex; gap:10px; align-items:center;">
+                                        <RadzenDropDown TValue="int?"
+                                                        Data="@months"
+                                                        @bind-Value="HpDetails.VehicleModelMonth"
+                                                        TextProperty="Name"
+                                                        ValueProperty="Id"
+                                                        Placeholder="MM"
+                                                        style="width:100%" />
+
+                                        <span> - </span>
+
+                                        <RadzenDropDown TValue="int?"
+                                                        Data="@years"
+                                                        @bind-Value="HpDetails.VehicleModelYear"
+                                                        Placeholder="YYYY"
+                                                        style="width:100%" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <RadzenDatePicker @bind-Value="HpDetails.InsuranceDate" Name="InsuranceDate" Placeholder="Insurance Date" Style="width:100%" />
+                                </div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-md-3">
+                                    <RadzenTextBox @bind-Value="HpDetails.EngineNumber" Name="EngineNo" Placeholder="Engine No" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("EngineNumber")</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <RadzenTextBox @bind-Value="HpDetails.ChasisNumber" Name="ChassisNo" Placeholder="Chassis No" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("ChasisNumber")</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <RadzenNumeric TValue="decimal" @bind-Value="HpDetails.MarketValue" Name="MarketValue" Placeholder="Market Val" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("MarketValue")</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <RadzenCheckBox @bind-Value="HpDetails.CBook" Name="CBook" /> <label>C-Book</label>
+                                </div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-md-3"><RadzenCheckBox @bind-Value="HpDetails.SaleLetter" Name="SaleLetter" /> <label>Sale Letter</label></div>
+                                <div class="col-md-3">
+                                    <RadzenNumeric TValue="decimal" @bind-Value="HpDetails.FundingPercentage" Name="FundingPercentage" Placeholder="Funding %" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("FundingPercentage")</span>
+                                </div>
+                                <div class="col-md-3"><RadzenCheckBox @bind-Value="HpDetails.FinanceClearLetter" Name="FinanceClearLetter" /> <label>Finance Clear Letter</label></div>
+                                <div class="col-md-3">
+                                    <RadzenTextBox @bind-Value="HpDetails.FinanceName" Name="FinanceName" Placeholder="Finance Name" Style="width:100%" />
+                                </div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-md-4"><RadzenTextBox @bind-Value="HpDetails.BankName" Name="BankName" Placeholder="Bank Name" Style="width:100%" /></div>
+                                <div class="col-md-4"><RadzenTextBox @bind-Value="HpDetails.AccountNo" Name="BankAccountNo" Placeholder="Bank Account No" Style="width:100%" /></div>
+                                <div class="col-md-4"><RadzenCheckBox @bind-Value="HpDetails.NoTR" Name="NoTR" /> <label>NO T/R</label></div>
+                            </div>
+
+                            <RadzenButton Text="Clear"
+                                          ButtonStyle="ButtonStyle.Info"
+                                          Click="@ClearStep3"
+                                          Icon="refresh"
+                                          class="mt-2" />
+
+                        </RadzenFieldset>
+                    </RadzenStepsItem>
+
+                    <!-- Step 4: Finance Details -->
+                    <RadzenStepsItem Text="Finance Details" Disabled="@(!AllowSteps)">
+                        <RadzenFieldset Text="Finance Details">
+                            <div class="row mb-2">
+                                <div class="col-md-3">
+                                    <RadzenNumeric TValue="decimal" @bind-Value="HpDetails.FinanceValue" Name="FinanceAmount" Placeholder="Finance Amount" Change="@(args => CalculateInstallmentAmount())" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("FinanceValue")</span>
+                                </div>
+                                <div class="col-md-3"><RadzenNumeric TValue="decimal" @bind-Value="HpDetails.RTOCharge" Name="RtoPending" Placeholder="RTO Pending" Change="@(args => CalculateInstallmentAmount())" Style="width:100%" /></div>
+                                <div class="col-md-3"><RadzenNumeric TValue="decimal" @bind-Value="HpDetails.DocCharges" Name="RecordsPending" Placeholder="Records Pending" Change="@(args => CalculateInstallmentAmount())" Style="width:100%" /></div>
+                                <div class="col-md-3"><RadzenNumeric TValue="decimal" @bind-Value="HpDetails.HPCharge" Name="HpCharges" Placeholder="HP Charges" Change="@(args => CalculateInstallmentAmount())" Style="width:100%" /></div>
+
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center">
+                                        <RadzenNumeric TValue="int?" @bind-Value="HpDetails.Installments" Name="Installments" Placeholder="Installments" Change="@(args => CalculateInstallmentAmount())" Style="width:100%" />
+                                        <span style="font-weight:bold; margin-left:10px; white-space:nowrap;">
+                                            @($"{AvgInstallmentAmount:n2}")
+                                        </span>
+                                    </div>
+                                    <span class="text-danger d-inline">@ValidationMsg("Installments")</span>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <RadzenDropDown TValue="int?" Data="@employees"
+                                                    @bind-Value="HpDetails.EmployeeId"
+                                                    TextProperty="EmployeeName"
+                                                    ValueProperty="EmployeeId"
+                                                    Name="AgreementById"
+                                                    AllowFiltering="true"
+                                                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                                    Placeholder="Agreement By"
+                                                    Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("EmployeeId")</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <RadzenTextBox @bind-Value="HpDetails.VerifiedBy" Name="VerifiedBy" Placeholder="Verified By" Style="width:100%" />
+                                    <span class="text-danger d-inline">@ValidationMsg("VerifiedBy")</span>
+                                </div>
+
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-md-4">
+                                    <RadzenNumeric TValue="decimal" @bind-Value="HpDetails.PartyDebitAmount" Name="PdrAmount" Placeholder="PDR Amount" Style="width:100%" />
+                                    <RadzenNumericRangeValidator Component="PdrAmount" Min="0" Text="PDR must be >= 0" />
+                                </div>
+                                <div class="col-md-4"><RadzenDatePicker @bind-Value="HpDetails.AdjustDate" Name="AdjustmentDate" Placeholder="Adjustment Date" Style="width:100%" /></div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-md-12"><RadzenTextArea @bind-Value="HpDetails.Description" Name="Description" Placeholder="Description" Rows="3" Style="width:100%" /></div>
+                            </div>
+
+                            <RadzenButton Text="Clear"
+                                          ButtonStyle="ButtonStyle.Info"
+                                          Click="@ClearStep4"
+                                          Icon="refresh"
+                                          class="mt-2" />
+                        </RadzenFieldset>
+                    </RadzenStepsItem>
+
+                    <!-- Step 5: Review & Submit -->
+                    <RadzenStepsItem Text="Review & Submit" Disabled="@(!AllowSteps)">
+                        <RadzenFieldset Text="Review">
+                            <p><b>Applicant:</b> @HpDetails.SurName @HpDetails.Name, @HpDetails.MobileNumber</p>
+                            <p><b>Vehicle:</b> @HpDetails.VehicleNumber, Engine: @HpDetails.EngineNumber, Chassis: @HpDetails.ChasisNumber</p>
+                            <p><b>Finance:</b> @HpDetails.FinanceValue, @HpDetails.Installments installments</p>
+                        </RadzenFieldset>
+
+                        @if (ValidationMessages.Count > 0)
+                        {
+                            <RadzenCard Class="mt-3" Style="background:#fff3f3; border:1px solid #d9534f;">
+                                <div class="p-3">
+                                    <h5 class="text-danger mb-2">Please fix the following:</h5>
+                                    <ul class="text-danger d-flex flex-wrap" style="list-style-type: disc; padding-left: 0px;">
+                                        @foreach (var err in ValidationMessages.Values)
+                                        {
+                                            <li class="p-3 col-3">@err</li>
+                                        }
+                                    </ul>
+                                </div>
+                            </RadzenCard>
+                        }
+
+                        <div class="mt-2 text-end">
+                            @if (SelectedHpEntryId > 0)
+                            {
+                                <RadzenButton ButtonStyle="ButtonStyle.Success"
+                                              Disabled="@(IsUpdating)"
+                                              Click="UpdateEntry">
+
+                                    @if (IsUpdating)
+                                    {
+                                        <RadzenIcon Icon="hourglass_top" />
+                                        <span>Updating...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Update Entry</span>
+                                    }
+                                </RadzenButton>
+                            }
+                            else
+                            {
+                                <RadzenButton ButtonStyle="ButtonStyle.Success"
+                                              Disabled="@(IsSaving)"
+                                              Click="SubmitEntry">
+
+                                    @if (IsSaving)
+                                    {
+                                        <RadzenIcon Icon="hourglass_top" />
+                                        <span>Submitting Entry...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Submit Entry</span>
+                                    }
+                                </RadzenButton>
+                            }
+                            <RadzenButton ButtonStyle="ButtonStyle.Danger"
+                                          Disabled="@(IsDeleting)"
+                                          Click="DeleteEntry">
+
+                                @if (IsDeleting)
+                                {
+                                    <RadzenIcon Icon="hourglass_top" />
+                                    <span>Deleting Entry...</span>
+                                }
+                                else
+                                {
+                                    <span>Delete Entry</span>
+                                }
+                            </RadzenButton>
+                        </div>
+                    </RadzenStepsItem>
+
+                </Steps>
+            </RadzenSteps>
+        </RadzenCard>
+
+    </RadzenStack>
+}

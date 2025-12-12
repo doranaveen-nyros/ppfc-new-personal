@@ -1,38 +1,78 @@
-﻿@using Radzen
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Radzen
 @using Radzen.Blazor
 @inherits LayoutComponentBase
 
+@inject NavigationManager Nav
+@inject NavigationManager NavigationManager
+
 <PageTitle>PPFC</PageTitle>
 
-<RadzenLayout Style="grid-template-areas: 'rz-sidebar rz-header' 'rz-sidebar rz-body'">
-    <RadzenHeader>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0">
-            <RadzenSidebarToggle Click="@(() => sidebarExpanded = !sidebarExpanded)" />
-            @* <RadzenLabel Text="Header" /> *@
-            <div class="d-flex align-items-center justify-content-end w-100">
-                @* <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Center"
-                             JustifyContent="JustifyContent.Center" Gap="0" Wrap="FlexWrap.Wrap">
-                    <RadzenAppearanceToggle />
-                </RadzenStack>
-                <div class="search-container rz-mr-3">
-                    <input type="text" class="form-control" placeholder="Search..." />
-                </div> *@
-                <div class="rz-mr-3">
-                    <i class="bi bi-bell" style="font-size: 1.5rem; cursor: pointer;"></i>
-                </div>
-                <div class="rz-mr-5">
-                    <button class="btn btn-danger" @onclick="Logout"><i class="fa fa-sign-out me-2"></i>Logout</button>
-                </div>
+<CascadingAuthenticationState>
+    <AuthorizeView>
+        <Authorizing>
+            <!-- ✅ Spinner in MainLayout too -->
+            <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <p>Authorizing...</p>
             </div>
-        </RadzenStack>
-    </RadzenHeader>
-    <RadzenSidebar @bind-Expanded="@sidebarExpanded">
-        <NavMenu />
-    </RadzenSidebar>
-    <RadzenBody>
-        <div class="rz-p-4">
-            <RadzenDialog />
-            @Body
-        </div>
-    </RadzenBody>
-</RadzenLayout>
+        </Authorizing>
+
+        <Authorized>
+            <!-- ✅ Your full MainLayout goes here -->
+            <RadzenLayout Style="grid-template-areas: 'rz-sidebar rz-header' 'rz-sidebar rz-body'">
+
+                <RadzenHeader>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0">
+                        <RadzenSidebarToggle Click="@(() => sidebarExpanded = !sidebarExpanded)" />
+
+                        <!-- ✅ Breadcrumbs -->
+                        @* <nav class="d-flex">
+                            @if (breadcrumbService.Items.Any())
+                            {
+                                @foreach (var (item, index) in breadcrumbService.Items.Select((v, i) => (v, i)))
+                                {
+                                    <span>@item</span>
+                                    @if (index < breadcrumbService.Items.Count - 1)
+                                    {
+                                        <span> &gt; </span>
+                                    }
+                                }
+                            }
+                        </nav> *@
+
+                        <div class="d-flex align-items-center justify-content-end w-100">
+                            <div class="rz-mr-3">
+                                <i class="bi bi-bell" style="font-size: 1.5rem; cursor: pointer;"></i>
+                            </div>
+                            <div class="rz-mr-5">
+                                <button class="btn btn-outline-danger" @onclick="Logout">
+                                    <i class="fa fa-sign-out me-2"></i>Logout
+                                </button>
+                            </div>
+                        </div>
+                    </RadzenStack>
+                </RadzenHeader>
+
+                <RadzenSidebar @bind-Expanded="@sidebarExpanded">
+                    <NavMenu />
+                </RadzenSidebar>
+
+                <RadzenBody>
+                    <div class="rz-p-4">
+                        <RadzenDialog />
+                        @Body
+                    </div>
+                </RadzenBody>
+
+            </RadzenLayout>
+        </Authorized>
+
+        <NotAuthorized>
+            <RedirectToLogin />
+        </NotAuthorized>
+    </AuthorizeView>
+</CascadingAuthenticationState>
+
+

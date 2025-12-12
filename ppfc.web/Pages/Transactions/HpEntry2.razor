@@ -1,0 +1,598 @@
+@page "/transactions/hpentry2"
+@using System.ComponentModel.DataAnnotations
+@using Radzen
+@using Radzen.Blazor
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<h1>Hp Entry</h1>
+
+<div class="lookup-container">
+    <RadzenCard class="form-card">
+        <RadzenStack Gap="2rem">
+
+            <!-- Progress Bar positioned above steps but visually behind -->
+            <div class="progress-container">
+                <RadzenProgressBar @bind-Value="@progressValue"
+                                   Max="100"
+                                   ShowValue="false"
+                                   Style="width: 100%; height: 6px;"
+                                   class="background-progress" />
+            </div>
+
+            <!-- RadzenSteps Component -->
+            <div class="steps-container">
+                <RadzenSteps @bind-SelectedIndex="@currentStep"
+                             NextText="Next"
+                             PreviousText="Back"
+                             FinishText="Submit"
+                             NextIcon="keyboard_arrow_right"
+                             PreviousIcon="keyboard_arrow_left">
+                    <Steps>
+                        <!-- Step 1: Search & Application Type -->
+                        <RadzenStepsItem Text="Search" Icon="search">
+                            <div class="step-content">
+                                <RadzenStack Gap="1rem">
+                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                        <RadzenIcon Icon="search" Style="color: #3b82f6;" />
+                                        <RadzenText TextStyle="TextStyle.H5">Search & Application Type</RadzenText>
+                                    </RadzenStack>
+
+                                    <EditForm Model="@searchModel">
+                                        <DataAnnotationsValidator />
+
+                                        <RadzenRow Gap="1rem">
+                                            <RadzenColumn SizeLG="6" SizeMD="6" SizeSM="12">
+                                                <RadzenStack>
+                                                    <RadzenLabel Text="Application Type" class="field-label" />
+                                                    <RadzenDropDown @bind-Value="@searchModel.ApplicationType"
+                                                                    Data="@applicationTypes"
+                                                                    Placeholder="Select application type"
+                                                                    class="rz-w-100" />
+                                                </RadzenStack>
+                                            </RadzenColumn>
+                                            <RadzenColumn SizeLG="6" SizeMD="6" SizeSM="12">
+                                                <RadzenStack>
+                                                    <RadzenLabel Text="Reference Number" class="field-label" />
+                                                    <RadzenTextBox @bind-Value="@searchModel.ReferenceNumber"
+                                                                   Placeholder="Enter reference number"
+                                                                   class="rz-w-100" />
+                                                </RadzenStack>
+                                            </RadzenColumn>
+                                        </RadzenRow>
+
+                                        <RadzenRow Gap="0" class="rz-mt-4">
+                                            <RadzenColumn Size="12">
+                                                <RadzenStack>
+                                                    <RadzenLabel Text="Search Criteria" class="field-label" />
+                                                    <RadzenTextArea @bind-Value="@searchModel.SearchCriteria"
+                                                                    Placeholder="Enter search criteria or keywords"
+                                                                    Rows="3"
+                                                                    class="rz-w-100" />
+                                                </RadzenStack>
+                                            </RadzenColumn>
+                                        </RadzenRow>
+                                    </EditForm>
+                                </RadzenStack>
+                            </div>
+                        </RadzenStepsItem>
+
+                        <!-- Step 2: Personal Information -->
+                        <RadzenStepsItem Text="Personal Details">
+                            <div class="step-content">
+                                <RadzenStack Gap="1rem">
+                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                        <RadzenIcon Icon="person" Style="color: #3b82f6;" />
+                                        <RadzenText TextStyle="TextStyle.H5">Personal Information</RadzenText>
+                                    </RadzenStack>
+
+                                    <EditForm Model="@personalModel">
+                                        <DataAnnotationsValidator />
+
+                                        <RadzenRow Gap="1rem">
+                                            <RadzenColumn SizeLG="3" SizeMD="6" SizeSM="12">
+                                                <RadzenStack>
+                                                    <RadzenLabel Text="Area" class="field-label" />
+                                                    <RadzenDropDown @bind-Value="@personalModel.Area"
+                                                                    Data="@areaOptions"
+                                                                    Placeholder="- Select -"
+                                                                    class="rz-w-100" />
+                                                </RadzenStack>
+                                            </RadzenColumn>
+                                            <RadzenColumn SizeLG="3" SizeMD="6" SizeSM="12">
+                                                <RadzenStack>
+                                                    <RadzenLabel Text="SurName" class="field-label" />
+                                                    <RadzenTextBox @bind-Value="@personalModel.SurName"
+                                                                   Placeholder="Enter surname"
+                                                                   class="rz-w-100" />
+                                                </RadzenStack>
+                                            </RadzenColumn>
+                                            <RadzenColumn SizeLG="3" SizeMD="6" SizeSM="12">
+                                                <RadzenStack>
+                                                    <RadzenLabel Text="Name (S/O)" class="field-label" />
+                                                    <RadzenTextBox @bind-Value="@personalModel.NameSO"
+                                                                   Placeholder="Enter name"
+                                                                   class="rz-w-100" />
+                                                </RadzenStack>
+                                            </RadzenColumn>
+                                            <RadzenColumn SizeLG="3" SizeMD="6" SizeSM="12">
+                                                <RadzenStack>
+                                                    <RadzenLabel Text="Mandal" class="field-label" />
+                                                    <RadzenDropDown @bind-Value="@personalModel.Mandal"
+                                                                    Data="@mandalOptions"
+                                                                    Placeholder="- Select -"
+                                                                    class="rz-w-100" />
+                                                </RadzenStack>
+                                            </RadzenColumn>
+                                        </RadzenRow>
+
+                                        <!-- Rest of the personal information form remains the same -->
+                                        <!-- ... -->
+
+                                    </EditForm>
+                                </RadzenStack>
+                            </div>
+                        </RadzenStepsItem>
+
+                        <!-- Step 3: Vehicle Details -->
+                        <RadzenStepsItem Text="Vehicle Details">
+                            <div class="step-content">
+                                <RadzenStack Gap="1rem">
+                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                        <RadzenIcon Icon="directions_car" Style="color: #3b82f6;" />
+                                        <RadzenText TextStyle="TextStyle.H5">HP Entry ID: 123177</RadzenText>
+                                    </RadzenStack>
+
+                                    <EditForm Model="@vehicleModel">
+                                        <DataAnnotationsValidator />
+
+                                        <RadzenRow Gap="2rem">
+                                            <RadzenColumn SizeLG="6" SizeMD="6" SizeSM="12">
+                                                <RadzenStack>
+                                                    <RadzenLabel Text="From Date" class="field-label" />
+                                                    <RadzenDatePicker @bind-Value="@vehicleModel.FromDate"
+                                                                      DateFormat="dd/MM/yyyy"
+                                                                      Placeholder="DD/MM/YYYY"
+                                                                      class="rz-w-100" />
+                                                </RadzenStack>
+                                            </RadzenColumn>
+                                            <RadzenColumn SizeLG="6" SizeMD="6" SizeSM="12">
+                                                <RadzenStack>
+                                                    <RadzenLabel Text="To Date" class="field-label" />
+                                                    <RadzenDatePicker @bind-Value="@vehicleModel.ToDate"
+                                                                      DateFormat="dd/MM/yyyy"
+                                                                      Placeholder="DD/MM/YYYY"
+                                                                      class="rz-w-100" />
+                                                </RadzenStack>
+                                            </RadzenColumn>
+                                        </RadzenRow>
+
+                                        <!-- Rest of vehicle details form remains the same -->
+                                        <!-- ... -->
+
+                                    </EditForm>
+                                </RadzenStack>
+                            </div>
+                        </RadzenStepsItem>
+
+                        <!-- Step 4: Finance Details -->
+                        <RadzenStepsItem Text="Finance Details">
+                            <div class="step-content">
+                                <RadzenStack Gap="1rem">
+                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                        <RadzenIcon Icon="currency_rupee" Style="color: #3b82f6;" />
+                                        <RadzenText TextStyle="TextStyle.H5">Finance & Payment Details</RadzenText>
+                                    </RadzenStack>
+
+                                    <EditForm Model="@financeModel">
+                                        <DataAnnotationsValidator />
+
+                                        <RadzenRow Gap="2rem">
+                                            <RadzenColumn SizeLG="6" SizeMD="6" SizeSM="12">
+                                                <RadzenStack>
+                                                    <RadzenLabel Text="Loan Amount *" class="field-label required" />
+                                                    <RadzenNumeric @bind-Value="@financeModel.LoanAmount"
+                                                                   Format="c"
+                                                                   Placeholder="Enter loan amount"
+                                                                   class="rz-w-100" />
+                                                    <ValidationMessage For="@(() => financeModel.LoanAmount)" />
+                                                </RadzenStack>
+                                            </RadzenColumn>
+                                            <RadzenColumn SizeLG="6" SizeMD="6" SizeSM="12">
+                                                <RadzenStack>
+                                                    <RadzenLabel Text="Loan Tenure (Years) *" class="field-label required" />
+                                                    <RadzenDropDown @bind-Value="@financeModel.LoanTenure"
+                                                                    Data="@tenureOptions"
+                                                                    Placeholder="Select tenure"
+                                                                    class="rz-w-100" />
+                                                    <ValidationMessage For="@(() => financeModel.LoanTenure)" />
+                                                </RadzenStack>
+                                            </RadzenColumn>
+                                        </RadzenRow>
+
+                                        <!-- Rest of finance details form remains the same -->
+                                        <!-- ... -->
+
+                                    </EditForm>
+                                </RadzenStack>
+                            </div>
+                        </RadzenStepsItem>
+
+                        <!-- Step 5: Success -->
+                        <RadzenStepsItem Text="Success">
+                            <div class="step-content">
+                                <RadzenStack AlignItems="AlignItems.Center" Gap="2rem">
+                                    <RadzenIcon Icon="check_circle" Style="font-size: 80px; color: #10b981;" />
+                                    <RadzenText TextStyle="TextStyle.H4" class="rz-color-success">Application Submitted Successfully!</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body1" class="rz-text-align-center">
+                                        Your application has been submitted and is being processed.
+                                        You will receive updates on your registered mobile number and email.
+                                    </RadzenText>
+
+                                    <RadzenCard class="rz-w-100">
+                                        <RadzenText TextStyle="TextStyle.H6" class="rz-mb-3">Application Summary</RadzenText>
+                                        <RadzenRow Gap="1rem">
+                                            <RadzenColumn SizeLG="6" SizeMD="6" SizeSM="12">
+                                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary">Application ID</RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Subtitle1">APP@DateTime.Now.ToString("yyyyMMddHHmm")</RadzenText>
+                                            </RadzenColumn>
+                                            <RadzenColumn SizeLG="6" SizeMD="6" SizeSM="12">
+                                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary">Submitted On</RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Subtitle1">@DateTime.Now.ToString("dd MMM yyyy, HH:mm")</RadzenText>
+                                            </RadzenColumn>
+                                            <RadzenColumn SizeLG="6" SizeMD="6" SizeSM="12">
+                                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary">Applicant Name</RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Subtitle1">@GetApplicantName()</RadzenText>
+                                            </RadzenColumn>
+                                            <RadzenColumn SizeLG="6" SizeMD="6" SizeSM="12">
+                                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary">Mobile Number</RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Subtitle1">@(personalModel.MobileNo ?? "Not provided")</RadzenText>
+                                            </RadzenColumn>
+                                        </RadzenRow>
+                                    </RadzenCard>
+
+                                    <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem">
+                                        <RadzenButton Icon="print" Text="Print Application" ButtonStyle="ButtonStyle.Secondary" />
+                                        <RadzenButton Icon="email" Text="Email Copy" ButtonStyle="ButtonStyle.Secondary" />
+                                        <RadzenButton Icon="home" Text="Back to Home" ButtonStyle="ButtonStyle.Primary" />
+                                    </RadzenStack>
+                                </RadzenStack>
+                            </div>
+                        </RadzenStepsItem>
+                    </Steps>
+                </RadzenSteps>
+            </div>
+
+            <!-- Custom Navigation Buttons -->
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" class="rz-mt-4">
+                <RadzenButton Icon="arrow_back"
+                              Text="Back"
+                              ButtonStyle="ButtonStyle.Light"
+                              Size="ButtonSize.Large"
+                              Disabled="@(currentStep == 0)"
+                              Click="@PreviousStep" />
+
+                <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem">
+                    @if (currentStep < 3)
+                    {
+                        <RadzenButton Icon="arrow_forward"
+                                      Text="Next"
+                                      ButtonStyle="ButtonStyle.Primary"
+                                      Size="ButtonSize.Large"
+                                      Loading="@isLoading"
+                                      Click="@NextStep" />
+                    }
+                    else if (currentStep == 3)
+                    {
+                        <RadzenButton Icon="check"
+                                      Text="Submit"
+                                      ButtonStyle="ButtonStyle.Success"
+                                      Size="ButtonSize.Large"
+                                      Loading="@isLoading"
+                                      Click="@SubmitForm" />
+                    }
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenCard>
+</div>
+
+<style>
+    .lookup-container {
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .form-card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        position: relative;
+        overflow: visible;
+    }
+
+    .step-content {
+        padding: 1.5rem;
+        min-height: 500px;
+    }
+
+    .field-label {
+        font-weight: 600;
+        margin-bottom: 0rem;
+        color: #374151;
+    }
+
+        .field-label.required::after {
+            content: " *";
+            color: #ef4444;
+        }
+
+    .rz-w-100 {
+        width: 100% !important;
+    }
+
+    .rz-mt-4 {
+        margin-top: 1rem !important;
+    }
+
+    .rz-mb-2 {
+        margin-bottom: 0.5rem !important;
+    }
+
+    .rz-mb-3 {
+        margin-bottom: 0.75rem !important;
+    }
+
+    .rz-ml-2 {
+        margin-left: 0.5rem !important;
+    }
+
+    .rz-text-align-right {
+        text-align: right !important;
+    }
+
+    .rz-text-align-left {
+        text-align: left !important;
+    }
+
+    .rz-text-align-center {
+        text-align: center !important;
+    }
+
+    .rz-color-primary {
+        color: #3b82f6 !important;
+    }
+
+    .rz-color-secondary {
+        color: #6b7280 !important;
+    }
+
+    .rz-color-success {
+        color: #10b981 !important;
+    }
+
+    /* Progress Bar Styling */
+    .progress-container {
+        position: relative;
+        width: 100%;
+        margin-bottom: 10px;
+        z-index: 5;
+    }
+
+    .background-progress {
+        position: relative;
+        z-index: 5;
+    }
+
+    .steps-container {
+        position: relative;
+        z-index: 10;
+    }
+
+    /* Ensure the progress bar is visible and properly styled */
+    .rz-progressbar {
+        background-color: #e5e7eb !important;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .rz-progressbar-value {
+        background: linear-gradient(90deg, #3b82f6, #60a5fa) !important;
+        transition: width 0.3s ease-in-out;
+        border-radius: 10px;
+    }
+
+    /* Adjust steps to appear above progress bar */
+    .rz-steps {
+        background: white;
+        border-radius: 8px;
+        padding: 10px;
+        position: relative;
+    }
+</style>
+
+@code {
+    private int currentStep = 0;
+    private bool isLoading = false;
+    private double progressValue = 0;
+
+    // Models for each step
+    private SearchModel searchModel = new();
+    private PersonalModel personalModel = new();
+    private VehicleModel vehicleModel = new();
+    private FinanceModel financeModel = new();
+
+    // Dropdown options
+    private string[] applicationTypes = { "New Application", "Renewal", "Update", "Inquiry" };
+    private string[] areaOptions = { "Urban", "Rural", "Semi-Urban" };
+    private string[] mandalOptions = { "Mandal 1", "Mandal 2", "Mandal 3" };
+    private string[] districtOptions = { "District 1", "District 2", "District 3" };
+    private string[] accountOptions = { "Account 1", "Account 2", "Account 3" };
+    private string[] branchOptions = { "Branch 1", "Branch 2", "Branch 3" };
+    private int[] tenureOptions = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+    private string[] employmentTypes = { "Salaried", "Self-Employed", "Business Owner", "Professional" };
+
+    private int[] dayOptions = Enumerable.Range(1, 31).ToArray();
+    private string[] monthOptions = { "January", "February", "March", "April", "May", "June",
+                                    "July", "August", "September", "October", "November", "December" };
+    private int[] yearOptions = Enumerable.Range(1950, 75).Reverse().ToArray();
+
+    protected override void OnInitialized()
+    {
+        UpdateProgress();
+    }
+
+    protected override void OnParametersSet()
+    {
+        UpdateProgress();
+    }
+
+    // Navigation methods
+    private void NextStep()
+    {
+        if (currentStep < 4)
+        {
+            currentStep++;
+            UpdateProgress();
+            StateHasChanged(); // Force UI update
+        }
+    }
+
+    private void PreviousStep()
+    {
+        if (currentStep > 0)
+        {
+            currentStep--;
+            UpdateProgress();
+            StateHasChanged(); // Force UI update
+        }
+    }
+
+    private void UpdateProgress()
+    {
+        // Calculate progress based on current step (0-4 steps = 5 total steps)
+        progressValue = (currentStep / 4.0) * 100;
+        Console.WriteLine($"Progress updated: {progressValue}% at step {currentStep}");
+    }
+
+    private async Task SubmitForm()
+    {
+        isLoading = true;
+        try
+        {
+            // Simulate form submission
+            await Task.Delay(2000);
+
+            NotificationService.Notify(NotificationSeverity.Success, "Success",
+                "Application submitted successfully!");
+
+            currentStep = 4; // Move to success step
+            UpdateProgress();
+            StateHasChanged();
+        }
+        catch
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error",
+                "Failed to submit application. Please try again.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ClearPersonalForm()
+    {
+        personalModel = new PersonalModel();
+    }
+
+    private void ResetVehicleForm()
+    {
+        vehicleModel = new VehicleModel();
+    }
+
+    private string GetApplicantName()
+    {
+        var fullName = $"{personalModel.SurName} {personalModel.NameSO}".Trim();
+        return string.IsNullOrEmpty(fullName) ? "Not provided" : fullName;
+    }
+
+    private decimal CalculateEMI()
+    {
+        if (financeModel.LoanAmount == null || financeModel.LoanTenure == null ||
+            financeModel.InterestRate == null || financeModel.InterestRate == 0)
+        {
+            return 0;
+        }
+
+        decimal principal = financeModel.LoanAmount.Value;
+        decimal rate = financeModel.InterestRate.Value / 100 / 12;
+        int tenure = financeModel.LoanTenure.Value * 12;
+
+        if (rate == 0) return principal / tenure;
+
+        decimal emi = principal * rate * (decimal)Math.Pow((double)(1 + rate), tenure) /
+                     ((decimal)Math.Pow((double)(1 + rate), tenure) - 1);
+
+        return Math.Round(emi, 2);
+    }
+
+    // Model classes (remain the same)
+    public class SearchModel
+    {
+        public string? ApplicationType { get; set; }
+        public string? ReferenceNumber { get; set; }
+        public string? SearchCriteria { get; set; }
+    }
+
+    public class PersonalModel
+    {
+        public string? Area { get; set; }
+        public string? SurName { get; set; }
+        public string? NameSO { get; set; }
+        public string? Mandal { get; set; }
+        public string? MobileNo { get; set; }
+        public string? LandNo { get; set; }
+        public string? WhatsappNumber { get; set; }
+        public int? Age { get; set; }
+        public string? Occupation { get; set; }
+        public string? Town { get; set; }
+        public string? District { get; set; }
+        public string? Address { get; set; }
+        public bool ResidenceProof { get; set; }
+        public bool IncomeProof { get; set; }
+        public int? DOBDay { get; set; }
+        public string? DOBMonth { get; set; }
+        public int? DOBYear { get; set; }
+        public string? AdharNumber { get; set; }
+        public string? FaceBook { get; set; }
+    }
+
+    public class VehicleModel
+    {
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+        public string? AccountNo { get; set; }
+        public string? Branch { get; set; }
+        public string RecordStatus { get; set; } = "Ok";
+    }
+
+    public class FinanceModel
+    {
+        [Required(ErrorMessage = "Loan amount is required")]
+        public decimal? LoanAmount { get; set; }
+
+        [Required(ErrorMessage = "Loan tenure is required")]
+        public int? LoanTenure { get; set; }
+
+        public decimal? InterestRate { get; set; }
+        public decimal? DownPayment { get; set; }
+        public decimal? ProcessingFee { get; set; }
+
+        [Required(ErrorMessage = "Monthly income is required")]
+        public decimal? MonthlyIncome { get; set; }
+
+        [Required(ErrorMessage = "Employment type is required")]
+        public string? EmploymentType { get; set; }
+    }
+}

@@ -1,0 +1,85 @@
+﻿@page "/master/branches"
+@using Radzen
+@using Radzen.Blazor
+@using ppfc.DTO
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenNotification />
+
+<PageTitle>Branch</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading branches...</p>
+    </div>
+}
+else
+{
+    <div class="d-flex" style="gap:30px;">
+        <div style="flex:1;">
+
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div><h3 class="mb-0">Branch</h3></div>
+                <RadzenButton Icon="add_circle"
+                              Text="Add New"
+                              Click="@AddNew"
+                              Style="margin-bottom:6px"
+                              ButtonStyle="ButtonStyle.Secondary" />
+            </div>
+
+            <RadzenDataGrid @ref="grid" Data="@branches" TItem="BranchesDto"
+                            EditMode="DataGridEditMode.Single"
+                            AllowPaging="true" PageSize="10"
+                            AllowSorting="true"
+                            AllowFiltering="true"
+                            FilterMode="FilterMode.Simple"
+                            FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                            Style="min-width:520px;"
+                            PagerHorizontalAlign="HorizontalAlign.Right">
+                <Columns>
+                    <RadzenDataGridColumn TItem="BranchesDto" Property="BranchName" Title="Branch Name" FilterPlaceholder="Search Branch">
+                        <EditTemplate Context="item">
+                            <RadzenTextBox @bind-Value="item.BranchName" Style="width:100%;" />
+                        </EditTemplate>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="BranchesDto" Property="LockCapital" Title="Lock" Filterable="false" TextAlign="TextAlign.Center"> 
+                        <Template Context="item">
+                            <RadzenSwitch TValue="bool"
+                                          Value="@item.LockCapital"
+                                          Change="@(async (bool newValue) => await ToggleLockAsync(item, newValue))" />
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="BranchesDto" Title="Actions" Filterable="false" Width="120px" TextAlign="TextAlign.Center">
+                        <Template Context="item">
+                            @if (grid != null && grid.IsRowInEditMode(item))
+                            {
+                                <RadzenButton Icon="save" Size="ButtonSize.Small" Click="@(args => SaveBranch(item))" Style="margin-right:6px;" />
+                                <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => CancelEdit(item))" />
+                            }
+                            else
+                            {
+                                <RadzenButton Icon="edit" Size="ButtonSize.Small" Click="@(args => EditBranch(item))" Style="margin-right:6px;" />
+                                @if (IsDelLoading == item.BranchId)
+                                {
+                                    <div class="spinner-border spinner-border-sm text-dark" role="status" style="margin-right: 13px; margin-left: 5px;"></div>
+                                }
+                                else
+                                {
+                                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => DeleteBranch(item))" />                                
+                                }
+                                
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+}

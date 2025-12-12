@@ -7,82 +7,136 @@
 @inject HttpClient Http
 <RadzenNotification />
 
-<PageTitle>PPFC</PageTitle>
+<PageTitle>Login - PPFC</PageTitle>
 
-<div class="h-100 login-page d-flex flex-wrap justify-content-end align-items-center">
-    <div class="card card-auth login-container ">
-        <div class="row g-0">
-            <div class="col-lg-12 login-card">
-                <div class="site-header">
-                    <div class="brand">
-                        Sri Padma Priya<br>
-                        <small style="font-weight:600">Finance Corp</small>
-                    </div>
-                </div>
+<div class="h-100 login-page d-flex justify-content-end align-items-center">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-10 mx-auto">
+                <div class="card card-auth">
+                    <div class="row">
+                        <div class="col-md-6 d-flex justify-content-end align-items-end">
+                            <div class="ms-auto">
+                                @if (news != null && news.Count > 0)
+                                {
+                                    @* <marquee direction="up" scrollamount="3" behavior="scroll">
+                
+            </marquee> *@
+                                    <div class="news-ticker-container">
+                                        @* <div class="news-ticker-header">
+                                            <i class="fas fa-bullhorn"></i>
+                                            Latest Announcements
+                                        </div> *@
+                                        <div class="news-ticker-content">
+                                            <ul id="newsList">
+                                                @foreach (var item in news)
+                                                {
+                                                    <li class="news-item">
+                                                        <span class="news-text">@item.Message</span>
+                                                        <span class="news-date text-end">@item.DateTime.ToString("MMM dd yyyy")</span>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    </div>
 
-                <!-- No HTML form submit -->
-                <div class="mt-3">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">UserName</label>
-                        <input id="username"
-                               class="form-control"
-                               placeholder="Enter username"
-                               @bind="loginData.UserName"
-                               autocomplete="username" />
-                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-white">No news available</p>
+                                }
 
-                    <div class="mb-2">
-                        <label for="password" class="form-label">Password</label>
-                        <div class="input-group">
-                            <input id="password"
-                                   class="form-control"
-                                   placeholder="Password"
-                                   type="@(ShowPassword ? "text" : "password")"
-                                   @bind="loginData.Password"
-                                   autocomplete="current-password" />
-                            <button class="btn btn-outline-secondary"
-                                    type="button"
-                                    aria-label="Toggle password"
-                                    @onclick="TogglePassword">
-                                <i class="@(ShowPassword ? "fa-solid fa-eye-slash" : "fa-solid fa-eye")"></i>
-                            </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6 border-start border-light">
+                            <div class="login-container mx-auto">
+                                <div class="row g-0">
+                                    <div class="col-lg-12 login-card">
+                                        <div class="site-header">
+                                            <div class="brand">
+                                                Sri Padma Priya<br>
+                                                <small style="font-weight:600">Finance Corp</small>
+                                            </div>
+                                        </div>
+
+                                        <!-- No HTML form submit -->
+                                        <EditForm Model="@loginData" OnValidSubmit="LoginAsync">
+                                            <DataAnnotationsValidator />
+
+                                            <div class="mt-3">
+                                                <div class="mb-3">
+                                                    <label for="username" class="form-label">UserName</label>
+                                                    <InputText id="username"
+                                                               class="form-control"
+                                                               placeholder="Enter username"
+                                                               @bind-Value="loginData.UserName"
+                                                               autocomplete="username" />
+                                                </div>
+
+                                                <div class="mb-2">
+                                                    <label for="password" class="form-label">Password</label>
+                                                    <div class="input-group">
+                                                        <InputText id="password"
+                                                                   class="form-control"
+                                                                   placeholder="Password"
+                                                                   @bind-Value="loginData.Password"
+                                                                   autocomplete="current-password"
+                                                                   type="@(ShowPassword ? "text" : "password")" />
+                                                        <button class="btn btn-outline-secondary"
+                                                                type="button"
+                                                                aria-label="Toggle password"
+                                                                @onclick="TogglePassword">
+                                                            <i class="@(ShowPassword ? "fa-solid fa-eye-slash" : "fa-solid fa-eye")"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                @if (!string.IsNullOrWhiteSpace(errorMessage))
+                                                {
+                                                    <div class="alert alert-danger mt-3" role="alert">@errorMessage</div>
+                                                }
+
+                                                <div class="d-flex align-items-center gap-3 mt-4">
+                                                    <button type="submit"
+                                                            class="btn btn-sign submit-btn btn-block w-100"
+                                                            disabled="@IsSubmitting">
+                                                        @if (IsSubmitting)
+                                                        {
+                                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                                            <span>Signing in...</span>
+
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>Sign In</span>
+                                                        }
+                                                    </button>
+                                                </div>
+
+                                                <div class="powered-by">
+                                                    <h6>Powered By</h6>
+                                                    <img alt="nyros-logo" loading="lazy" decoding="async" src="/images/NyrosIcon.png" />
+                                                </div>
+                                            </div>
+                                        </EditForm>
+
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 
-                    @if (!string.IsNullOrWhiteSpace(errorMessage))
-                    {
-                        <div class="alert alert-danger mt-3" role="alert">@errorMessage</div>
-                    }
 
-                    <div class="d-flex align-items-center gap-3 mt-4">
-                        <button type="button"
-                                class="btn btn-sign submit-btn btn-block w-100"
-                                @onclick="LoginAsync"
-                                disabled="@IsSubmitting">
-                            @if (IsSubmitting)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                <span>Signing in...</span>
-                            }
-                            else
-                            {
-                                <span>Sign In</span>
-                            }
-                        </button>
-                    </div>
-
-                    <div class="powered-by">
-                        <h6>Powered By</h6>
-                        <img alt="nyros-logo"
-                             loading="lazy"
-                             decoding="async"
-                             src="/images/logocolor.png" />
-                    </div>
                 </div>
-
             </div>
         </div>
     </div>
+    
+    
+    
+
+
     <!-- main -->
     @* <div class="auth-wrap container-fluid h-100">
         <div class="row align-items-center h-100">
@@ -96,7 +150,7 @@
     <!-- pinned footer -->
     <footer class="site-footer">
         <small>
-            Developed and Maintained by <strong><a href="https://www.nyros.com/">Nyros Technologies</a>, <a href="http://www.inkakinada.com/">Kakinada, India</a></strong> &nbsp;© <span id="year"></span>
+            Developed and Maintained by <strong><a href="https://www.nyros.com/">Nyros Futureworks</a>, <a href="http://www.inkakinada.com/">Kakinada, India</a></strong> &nbsp;© <span id="year"></span>
         </small>
     </footer>
 
@@ -108,4 +162,6 @@
     </div>
 
 </div>
+
+
 

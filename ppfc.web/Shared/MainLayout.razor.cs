@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using ppfc.web.Helpers;
 
 namespace ppfc.web.Shared
 {
@@ -8,9 +9,16 @@ namespace ppfc.web.Shared
     {
         bool sidebarExpanded = true;
 
-        [Inject] private ProtectedSessionStorage SessionStorage { get; set; }
+        [Inject] private ProtectedLocalStorage SessionStorage { get; set; }
         [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; }
         [Inject] private NavigationManager Navigation { get; set; }
+        [Inject] BreadcrumbService breadcrumbService { get; set; }
+
+        protected override void OnInitialized()
+        {
+            breadcrumbService.OnChange += () => InvokeAsync(StateHasChanged);
+
+        }
 
         private async Task Logout()
         {

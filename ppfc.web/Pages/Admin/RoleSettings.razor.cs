@@ -13,8 +13,10 @@ namespace ppfc.web.Pages.Admin
         public List<RoleDto> roles = new();
         public List<RoleSettingsDto> roleSettings = new();
         private List<RoleSettingsDto> originalRoleSettings = new(); // Store original state
-        public bool isLoading = true;
+
+        public bool IsLoading = true;
         public bool IsSubmitting = false;
+
         protected int? selectedRoleId;
         private int? originalSelectedRoleId;
         protected string? selectedPage; // Default Page dropdown
@@ -50,7 +52,7 @@ namespace ppfc.web.Pages.Admin
             }
             finally
             {
-                isLoading = false;
+                IsLoading = false;
             }
         }
 
@@ -109,7 +111,6 @@ namespace ppfc.web.Pages.Admin
 
             if (response.IsSuccessStatusCode)
             {
-                Console.WriteLine("Role settings updated successfully.");
                 originalRoleSettings = roleSettings.Select(rs => CloneRoleSettingsDto(rs)).ToList();
 
                 originalSelectedPage = selectedPage;
@@ -131,6 +132,12 @@ namespace ppfc.web.Pages.Admin
         // Reset button
         private void ResetGrid()
         {
+            if (originalRoleSettings == null || !originalRoleSettings.Any())
+            {
+                Notifier.Warning("No Data", "No data to reset.");
+                return;
+            }
+
             selectedRoleId = originalSelectedRoleId;
             selectedPage = originalSelectedPage;
             roleSettings = originalRoleSettings.Select(rs => CloneRoleSettingsDto(rs)).ToList();
@@ -138,6 +145,8 @@ namespace ppfc.web.Pages.Admin
             CategorizeRoleSettings();
             ApplyRestrictions();
             StateHasChanged();
+
+            Notifier.Info("Reset", "All changes reverted to original state.");
         }
 
         // Deep copy helper
@@ -233,9 +242,7 @@ namespace ppfc.web.Pages.Admin
             StateHasChanged();
         }
 
-        #endregion
-
-        
+        #endregion  
 
         #region Backup for Rolesettings Categorization
 

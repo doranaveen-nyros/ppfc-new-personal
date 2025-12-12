@@ -1,136 +1,79 @@
-@page "/admin/late-interest-entries-in-month"
+@page "/admin/lateinterestentriesinmonth"
 @using System.ComponentModel.DataAnnotations
 @using Radzen
 @using Radzen.Blazor
+@using ppfc.DTO
 @attribute [Authorize]
+@inject HttpClient Http
 @inject NotificationService NotificationService
-
-<h3 class="text-start mb-4">Late Interest Entries in Month</h3>
-
-<div>
-  <EditForm Model="model" OnValidSubmit="OnSubmit">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-    <div class="row">
-      <!-- Adjustment Days Section -->
-      <div class="col-md-6 mb-3">
-        <div class="card border-0 shadow-sm">
-          <div class="card-body">
-            <div class="row align-items-center g-2">
-              <div class="col-12">
-                <label class="form-label fw-semibold small text-muted">Adjustment Days :</label>
-              </div>
-              <div class="col-12">
-                <InputNumber @bind-Value="model.AdjustmentDays" class="form-control form-control-sm"
-                  aria-label="Adjustment Days" />
-                <ValidationMessage For="() => model.AdjustmentDays" class="text-danger small" />
-              </div>
-              <div class="col-auto">
-                @* <RadzenButton Text="Update"
-                                                      Size="ButtonSize.Small"
-                                                      ButtonStyle="ButtonStyle.Secondary"
-                                                      Click="UpdateAdjustmentDays"
-                                                      Icon="refresh" /> *@
-
-                <RadzenButton 
-                  Text="Update" 
-                  Size="ButtonSize.Small" 
-                  ButtonStyle="ButtonStyle.Secondary" 
-                  Icon="refresh"
-                  Click="@(args => ShowNotification(
-                  new NotificationMessage
-                  {
-                    Style = "position: fixed; top: 20px; right: 20px;",
-                    Severity = NotificationSeverity.Success,
-                    Summary = "Updated",
-                    Detail = $"Adjustment Days updated to {model.AdjustmentDays}.",
-                    Duration = 4000,
-                    ShowProgress = true,
-                    CloseOnClick = true,
-                    Payload = DateTime.Now
-                  }))" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </EditForm>
-</div>
+@inject DialogService DialogService
 
 <RadzenNotification />
 
-@code {
-  void ShowNotification(NotificationMessage message)
-  {
-    NotificationService.Notify(message);
-  }
-  private SettingsModel model = new SettingsModel
-  {
-    AdjustmentDays = 6, // default values from image
-    OldDataLimit = 10
-  };
+<PageTitle>Late Interest Entries</PageTitle>
 
-  private List<int> OldDataOptions = new() { 1, 3, 5, 7, 10, 15, 30, 60, 90 };
+<h3 class="text-start mb-4">Late Interest Entries in Month</h3>
 
-  private async Task UpdateAdjustmentDays()
-  {
-    if (model.AdjustmentDays < 0)
-    {
-      NotificationService.Notify(new NotificationMessage
-      {
-        Severity = NotificationSeverity.Warning,
-        Summary = "Invalid Input",
-        Detail = "Adjustment Days cannot be negative.",
-        Duration = 4000
-      });
-      return;
-    }
-
-    await Task.Delay(100); // simulate async save
-
-    NotificationService.Notify(new NotificationMessage
-    {
-      Severity = NotificationSeverity.Success,
-      Summary = "Updated",
-      Detail = $"Adjustment Days updated to {model.AdjustmentDays}.",
-      Duration = 4000
-    });
-  }
-
-  private async Task ChangeOldDataLimit()
-  {
-    await Task.Delay(100); // simulate async save
-
-    NotificationService.Notify(new NotificationMessage
-    {
-      Severity = NotificationSeverity.Info,
-      Summary = "Changed",
-      Detail = $"Old Data Limit changed to {model.OldDataLimit} days.",
-      Duration = 4000
-    });
-  }
-
-  private Task OnSubmit()
-  {
-    NotificationService.Notify(new NotificationMessage
-    {
-      Severity = NotificationSeverity.Success,
-      Summary = "Settings Submitted",
-      Detail = "Settings have been successfully saved.",
-      Duration = 4000
-    });
-    return Task.CompletedTask;
-  }
-
-  public class SettingsModel
-  {
-    [Range(0, 3650, ErrorMessage = "Adjustment days must be between 0 and 3650.")]
-    public int AdjustmentDays { get; set; }
-
-    [Range(1, 3650, ErrorMessage = "Old data limit must be at least 1 day.")]
-    public int OldDataLimit { get; set; }
-  }
-
-
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading Late Interest Entries In Month...</p>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <label class="col-form-label">Entries in Month</label>
+                        </div>
+                        <div class="col">
+                            <InputNumber @bind-Value="lateInterestEntriesInMonth"
+                                         class="form-control form-control-sm" aria-label="Entries in Month" />
+                        </div>
+                        <div class="col-auto">
+                            <button type="button"
+                                    class="btn btn-primary"
+                                    @onclick="UpdateLateInterest"
+                                    disabled="@IsUpdating">
+                                @if (IsUpdating)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Updating...</span>
+                                }
+                                else
+                                {
+                                    <span>Update</span>
+                                }
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @* <div class="col-md-3">
+        <label>
+            Entries in Month
+        </label>
+        <input @bind-value="lateInterestEntriesInMonth" />
+        <button type="button"
+                class="btn btn-primary"
+                @onclick="UpdateLateInterest"
+                disabled="@IsUpdating">
+            @if (IsUpdating)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span>Updating...</span>
+            }
+            else
+            {
+                <span>Update</span>
+            }
+        </button>
+    </div> *@
 }

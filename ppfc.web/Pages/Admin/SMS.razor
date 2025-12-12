@@ -1,0 +1,241 @@
+﻿@page "/admin/sms"
+@using ppfc.DTO
+@using Radzen
+@using Radzen.Blazor
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+@* <RadzenDialog /> *@
+<RadzenNotification />
+
+<PageTitle>SMS</PageTitle>
+
+<h3 class="text-start mb-3">SMS</h3>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading sms data...</p>
+    </div>
+}
+else
+{
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card bg-light shadow-sm p-3">
+                <div class="row mb-3">
+                    <!-- Company -->
+                    <div class="col-md-6 d-flex align-items-center">
+                        <label>Company: </label>
+                        <h5 class="mb-0 ms-2">@(company?.CompanyName ?? "N/A")</h5>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <!-- Branch -->
+                    <div class="col-md-6">
+                        <label class="mb-2">Branch</label>
+                        <select class="form-select" value="@selectedBranchId" @onchange="OnBranchChanged">
+                            <option value="0">All</option>
+                            @foreach (var b in branches)
+                            {
+                                <option value="@b.BranchId">@b.BranchName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Type -->
+                    <div class="col-md-6">
+                        <label class="mb-2">Type</label>
+                        <select class="form-select" value="@selectedType" @onchange="OnTypeChanged">
+                            <option>-Select-</option>
+                            <option>Employers</option>
+                            <option>Customers</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="mb-2">Message To</label>
+                        <RadzenDropDown Data="@receivers"
+                                        TextProperty="ReceiverName"
+                                        ValueProperty="PhoneNumber"
+                                        @bind-Value="selectedReceivers"
+                                        Placeholder="Select recipients"
+                                        AllowClear="true"
+                                        Multiple="true"
+                                        Virtualization="true"
+                                        AllowFiltering="true"
+                                        FilterOperator="StringFilterOperator.StartsWith"
+                                        FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"/>
+
+                        @if (IsReceiversLoading)
+                        {
+                            <small class="text-muted">Loading recipients...</small>
+                        }
+                        else if (receivers.Count > 0)
+                        {
+                            <small class="text-success">@($"{receivers.Count} recipients loaded")</small>
+                        }
+                        else if (selectedType != "-Select-" && !IsReceiversLoading)
+                        {
+                            <small class="text-danger">No recipients found.</small>
+                        }
+                    </div>
+                    <!-- Message -->
+                    <div class="col-md-6">
+                        <label class="mb-2">Message</label>
+                        <textarea class="form-control"
+                                  rows="3"
+                                  placeholder="Enter your message..."
+                                  @oninput="OnMessageInput"
+                                  value="@messageText"></textarea>
+                        <small class="text-muted">@messageLength characters</small>
+                    </div>
+                </div>
+
+               
+
+                <!-- Buttons -->
+                <div class="row mt-3">
+                    <div class="col-md-12 text-end">
+                        <button type="button"
+                                class="btn btn-primary me-2"
+                                @onclick="OnSendClicked"
+                                disabled="@IsSending">
+                            @if (IsSending)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Sending...</span>
+                            }
+                            else
+                            {
+                                <span>Send</span>
+                            }
+                        </button>
+                        <button class="btn btn-secondary" @onclick="ResetForm">Reset</button>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+    </div>
+
+        <button type="button"
+                class="btn btn-primary mb-2"
+                @onclick="LoadSMSData"
+                disabled="@IsLoadedSMS">
+            @if (IsLoadedSMS)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span>Loading Data...</span>
+            }
+            else
+            {
+                <span>Load Undelivered SMS</span>
+            }
+        </button>
+
+        @if (smsList.Count > 0)
+        {
+           
+                <RadzenDataGrid TItem="SmsDto"
+                                Data="@smsList"
+                               
+                                AllowSorting="true"
+                                AllowPaging="true"
+                                PageSize="10"
+                                AllowFiltering="true"
+                                FilterMode="FilterMode.Simple"
+                        FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                Style="height: 600px;"
+                                AllowColumnResize="true"
+                                PagerHorizontalAlign="HorizontalAlign.Right">
+
+                    <Columns>
+                        <!-- ✅ Checkbox Column with Select All -->
+                        <RadzenDataGridColumn TItem="SmsDto" Width="70px" Filterable="false">
+                            <HeaderTemplate>
+                                <input type="checkbox" @onchange="ToggleSelectAll" checked="@IsAllSelected" />
+                            </HeaderTemplate>
+                            <Template Context="sms">
+                                <input type="checkbox" @bind="sms.IsSelected" />
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="SmsDto" Property="Receiver" Title="Receiver" />
+                <RadzenDataGridColumn TItem="SmsDto" Property="Date" Title="Date" Width="120px" Filterable="false" />
+                <RadzenDataGridColumn TItem="SmsDto" Property="Time" Title="Time" Width="100px" Filterable="false" />
+                        <RadzenDataGridColumn TItem="SmsDto" Property="Message" Title="Message" />
+
+                        <!-- ✅ Per-row Resend Button -->
+                        <RadzenDataGridColumn TItem="SmsDto" Title="Actions" Width="100px" Filterable="false">
+                            <Template Context="sms">
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => ResendSingle(sms.SMSId)">
+                            @if (IsReSendSingleSMS == sms.SMSId)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                <span>Resending...</span>
+                            }
+                            else
+                            {
+                                <span>Resend</span>
+                            }
+                                </button>
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+
+                <!-- ✅ Footer Buttons -->
+                <div class="mt-3 text-end">
+                    <button type="button"
+                            class="btn btn-danger me-2"
+                            @onclick="DeleteSelected"
+                            disabled="@(!smsList.Any(x => x.IsSelected) || IsDeletingSMS)">
+                        @if (IsDeletingSMS)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>Deleting...</span>
+                        }
+                        else
+                        {
+                            <span>Delete Selected</span>
+                        }
+                    </button>
+
+                    @* <button class="btn btn-danger me-2" @onclick="DeleteSelected" disabled="@(!smsList.Any(x => x.IsSelected))">
+                    Delete Selected
+                </button> *@
+
+                    <button type="button"
+                            class="btn btn-success"
+                            @onclick="ResendSelected"
+                            disabled="@(!smsList.Any(x => x.IsSelected) || IsReSendingSMS)">
+                        @if (IsReSendingSMS)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>Resending...</span>
+                        }
+                        else
+                        {
+                            <span>Resend Selected</span>
+                        }
+                    </button>
+
+                    @* <button class="btn btn-success" @onclick="ResendSelected" disabled="@(!smsList.Any(x => x.IsSelected))">
+                    Resend Selected
+                </button> *@
+                </div>
+           
+        }
+        
+
+
+
+    
+}
+

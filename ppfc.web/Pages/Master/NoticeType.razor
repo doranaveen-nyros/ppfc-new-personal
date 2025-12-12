@@ -1,0 +1,99 @@
+﻿@page "/master/noticetype"
+@using Radzen
+@using Radzen.Blazor
+@using ppfc.DTO
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenNotification />
+
+<PageTitle>Notice Type</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading notices...</p>
+    </div>
+}
+else
+{
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div><h3 class="mb-0">Notice Type</h3></div>
+        <div>
+            <a href="https://telugu.changathi.com/" target="_blank">English to Telugu converter</a>
+        </div>
+        <div>
+            <RadzenButton Icon="add_circle" Text="Add New" Click="@(() => OpenModal(isEdit: false))" ButtonStyle="ButtonStyle.Secondary" />
+        </div>
+    </div>
+
+    <!-- Grid -->
+    <RadzenDataGrid @ref="grid"
+                    Data="@notices"
+                    TItem="NoticeTypeDto"
+                    EditMode="DataGridEditMode.Single"
+                    AllowPaging="true"
+                    PageSize="8"
+                    AllowSorting="true"
+                    Style="min-width:900px;">
+        <Columns>
+            <RadzenDataGridColumn TItem="NoticeTypeDto" Property="NoticeType" Title="Notice Type" Width="20%">
+                <Template Context="item">@item.NoticeType</Template>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="NoticeTypeDto" Property="Notice" Title="Notice" Width="65%">
+                <Template Context="item">
+                    <div title="@item.Notice" style="white-space:pre-wrap;">
+                        @Truncate(item.Notice, 200)
+                    </div>
+                </Template>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="NoticeTypeDto" Title="Actions" Width="15%">
+                <Template Context="item">
+                    <RadzenButton Icon="edit" Size="ButtonSize.Small" Click="@(() => OpenModal(isEdit: true, model: item))" Style="margin-right:6px;" />
+                    <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger" Click="@(async () => await ConfirmDelete(item))" />
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+
+    <!-- Modal: Add / Edit -->
+    @if (isModalOpen)
+    {
+        <div class="modal show" tabindex="-1" style="display:block; background:rgba(0,0,0,0.4);">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">@((isEditing ? "Edit" : "Add") + " Notice")</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <EditForm Model="modalModel" OnValidSubmit="OnModalSubmit">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary />
+
+                            <div class="mb-2">
+                                <label class="form-label">Notice Type</label>
+                                <RadzenTextBox @bind-Value="modalModel.NoticeType" Style="width:100%;" />
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label">Notice</label>
+                                <RadzenTextArea @bind-Value="modalModel.Notice" Style="width:100%; height:160px;" />
+                            </div>
+
+                            <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+                                <RadzenButton ButtonStyle="ButtonStyle.Primary" Text="Submit" Type="Submit" />
+                                <RadzenButton ButtonStyle="ButtonStyle.Secondary" Text="Cancel" Click="@CloseModal" />
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}

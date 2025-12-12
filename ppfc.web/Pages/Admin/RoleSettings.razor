@@ -3,13 +3,14 @@
 @using Radzen
 @using Radzen.Blazor
 @attribute [Authorize]
-
 @inject HttpClient Http
 <RadzenNotification />
 
-<h3>Role Settings</h3>
+<PageTitle>Role Settings</PageTitle>
 
-@if (isLoading)
+<h3 class="text-start mb-3">Role Settings</h3>
+
+@if (IsLoading)
 {
     <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
         <div class="spinner-border text-primary mb-3" role="status"></div>
@@ -27,7 +28,6 @@ else
             <div class="row">
 
                 <div class="col-lg-4">
-                    <label for="roleSelect">Select Role:</label>
                     <select id="roleSelect" class="form-select" @onchange="OnRoleChanged">
                         <option value="" disabled selected>Select Role</option>
                         @foreach (var role in roles)
@@ -38,7 +38,6 @@ else
                 </div>
 
                 <div class="col-lg-4">
-                    <label for="ddlDefaultPage">Select Default Page:</label>
                     <select id="ddlDefaultPage" class="form-select" @bind="selectedPage">
                         <option value="" disabled selected>Select Default Page</option>
                         @foreach (var pages in defaultPages)
@@ -52,77 +51,6 @@ else
         </div>
     </div>
 
-    @* @if (roleSettings != null && roleSettings.Any())
-    {
-        <table class="table table-bordered table-sm mt-3">
-            <thead class="table-light">
-                <tr>
-                    <th style="width:38%">Screen Name</th>
-                    <th style="width:15%">
-                        <input type="checkbox" @onchange="ToggleAllAdd" checked="@roleSettings.All(r => r.AdditionPrivileges)" /> Add ALL
-                    </th>
-                    <th style="width:15%">
-                        <input type="checkbox" @onchange="ToggleAllEdit" checked="@roleSettings.All(r => r.EditPrivileges)" /> Edit ALL
-                    </th>
-                    <th style="width:17%">
-                        <input type="checkbox" @onchange="ToggleAllDelete" checked="@roleSettings.All(r => r.DeletePrivileges)"  /> Delete ALL
-                    </th>
-                    <th style="width:15%">
-                        <input type="checkbox" @onchange="ToggleAllView" checked="@roleSettings.All(r => r.ViewPrivileges)" /> View ALL
-                    </th>
-                </tr>
-            </thead>
-
-            @* -----------------------------------------------------------------------------------------
-            <tbody>
-                @foreach (var r in roleSettings)
-                {
-                    var restriction = ScreenPrivileges.GetRestrictions(r.ScreenName);
-                    var textColor = GetScreenColor(r.ScreenName);
-                    var tooltip = GetModuleName(textColor);
-
-                    <tr title="@tooltip">
-                        <td style="color:@textColor;">@r.ScreenName</td>
-                        <td><input type="checkbox" @bind="r.AdditionPrivileges" disabled="@restriction.DisableAdd" /></td>
-                        <td><input type="checkbox" @bind="r.EditPrivileges" disabled="@restriction.DisableEdit" /></td>
-                        <td><input type="checkbox" @bind="r.DeletePrivileges" disabled="@restriction.DisableDelete" /></td>
-                        <td><input type="checkbox" @bind="r.ViewPrivileges" disabled="@restriction.DisableView" /></td>
-                    </tr>
-                }
-            </tbody> ----------------------------------------------------------------------------------
-
-            <tbody>
-                @{
-                    string lastModule = string.Empty;
-                }
-
-                @foreach (var r in roleSettings)
-                {
-                    var restriction = ScreenPrivileges.GetRestrictions(r.ScreenName);
-                    var (color, module, isNewModule) = GetScreenCategory(r.ScreenName);
-
-                    if (isNewModule)
-                    {
-                        <tr>
-                            <td colspan="5" class="fw-bold text-white" style="background-color:@color; text-align:center;">
-                                @module
-                            </td>
-                        </tr>
-                    }
-
-                    <tr title="@module">
-                        <td style="color:@color;">@r.ScreenName</td>
-                        <td><input type="checkbox" @bind="r.AdditionPrivileges" disabled="@restriction.DisableAdd" /></td>
-                        <td><input type="checkbox" @bind="r.EditPrivileges" disabled="@restriction.DisableEdit" /></td>
-                        <td><input type="checkbox" @bind="r.DeletePrivileges" disabled="@restriction.DisableDelete" /></td>
-                        <td><input type="checkbox" @bind="r.ViewPrivileges" disabled="@restriction.DisableView" /></td>
-                    </tr>
-                }
-            </tbody>
-
-
-        </table>
-    } *@
 
     @if (categorizedRoles.Count > 0)
     {
@@ -155,34 +83,53 @@ else
                      role="tabpanel">
                     <table class="table table-bordered">
                         <thead class="table-light">
-                            <tr style="color:@color;">
+                            <tr>
                                 <th style="width:38%">Screen Name</th>
                                 <th style="width:15%">
-                                    <div class="d-flex align-items-center">
-                                        <input type="checkbox"
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <label class="custom-checkbox">                                                                                                                                
+                                            <input type="checkbox"
                                                @onchange="e => ToggleAllAdd(e, module)"
-                                               checked="@screens.All(r => r.AdditionPrivileges || ScreenPrivileges.GetRestrictions(r.ScreenName).DisableAdd)" /> <label class="ms-2">Add ALL</label>
+                                               checked="@screens.All(r => r.AdditionPrivileges || ScreenPrivileges.GetRestrictions(r.ScreenName).DisableAdd)" />
+                                            <span class="checkmark"></span>
+                                               <label>Add ALL</label>
+                                        </label>
                                     </div>                                    
                                 </th>
                                 <th style="width:15%">
-                                    <div class="d-flex align-items-center">
-                                        <input type="checkbox"
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <label class="custom-checkbox">
+                                            <input type="checkbox"
                                                @onchange="e => ToggleAllEdit(e, module)"
-                                               checked="@screens.All(r => r.EditPrivileges || ScreenPrivileges.GetRestrictions(r.ScreenName).DisableEdit)" /> <label class="ms-2">Edit ALL</label>
+                                               checked="@screens.All(r => r.EditPrivileges || ScreenPrivileges.GetRestrictions(r.ScreenName).DisableEdit)" />
+                                            <span class="checkmark"></span>
+                                               <label>Edit ALL</label>
+                                        </label>
                                     </div>
                                 </th>
-                                <th style="width:17%">
-                                    <div class="d-flex align-items-center">
+                                <th style="width:17%" class="text-center">
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <label class="custom-checkbox">
+                                            
                                         <input type="checkbox"
                                                @onchange="e => ToggleAllDelete(e, module)"
-                                               checked="@screens.All(r => r.DeletePrivileges || ScreenPrivileges.GetRestrictions(r.ScreenName).DisableDelete)" /> <label class="ms-2">Delete ALL</label>
+                                               checked="@screens.All(r => r.DeletePrivileges || ScreenPrivileges.GetRestrictions(r.ScreenName).DisableDelete)" />
+                                               <label>Delete ALL</label>
+                                            <span class="checkmark"></span>
+                                        </label>
                                     </div>
                                 </th>
                                 <th style="width:15%">
-                                    <div class="d-flex align-items-center">
-                                        <input type="checkbox"
-                                               @onchange="e => ToggleAllView(e, module)"
-                                               checked="@screens.All(r => r.ViewPrivileges || ScreenPrivileges.GetRestrictions(r.ScreenName).DisableView)" /> <label class="ms-2">View ALL</label>
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <label class="custom-checkbox">
+
+                                            <input type="checkbox"
+                                                    @onchange="e => ToggleAllView(e, module)"
+                                                    checked="@screens.All(r => r.ViewPrivileges || ScreenPrivileges.GetRestrictions(r.ScreenName).DisableView)" />
+                                            <label>View ALL</label>
+                                            <span class="checkmark"></span>
+                                        </label>
+                                        
                                     </div>
                                 </th>
                             </tr>
@@ -192,12 +139,41 @@ else
                             {
                                 var restriction = ScreenPrivileges.GetRestrictions(r.ScreenName);
 
-                                <tr style="color:@color;" title="@module">
+                                <tr title="@module">
                                     <td>@r.ScreenName</td>
-                                    <td><input type="checkbox" @bind="r.AdditionPrivileges" disabled="@restriction.DisableAdd" /></td>
-                                    <td><input type="checkbox" @bind="r.EditPrivileges" disabled="@restriction.DisableEdit" /></td>
-                                    <td><input type="checkbox" @bind="r.DeletePrivileges" disabled="@restriction.DisableDelete" /></td>
-                                    <td><input type="checkbox" @bind="r.ViewPrivileges" disabled="@restriction.DisableView" /></td>
+                                    <td class="text-center">
+                                        <label class="custom-checkbox">
+
+                                            <input type="checkbox" @bind="r.AdditionPrivileges" disabled="@restriction.DisableAdd" />
+                                           
+                                            <span class="checkmark"></span>
+                                        </label>
+                                        
+                                    </td>
+                                    <td class="text-center">
+                                        <label class="custom-checkbox">
+
+                                            <input type="checkbox" @bind="r.EditPrivileges" disabled="@restriction.DisableEdit" />
+                                           
+                                            <span class="checkmark"></span>
+                                        </label>
+                                        </td>
+                                    <td class="text-center">
+                                        <label class="custom-checkbox">
+
+                                            <input type="checkbox" @bind="r.DeletePrivileges" disabled="@restriction.DisableDelete" />
+                                           
+                                            <span class="checkmark"></span>
+                                        </label>
+                                        </td>
+                                    <td class="text-center">
+                                        <label class="custom-checkbox">
+
+                                            <input type="checkbox" @bind="r.ViewPrivileges" disabled="@restriction.DisableView" />
+                                           
+                                            <span class="checkmark"></span>
+                                        </label>
+                                        </td>
                                 </tr>
                             }
                         </tbody>

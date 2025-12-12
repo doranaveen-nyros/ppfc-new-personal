@@ -1,192 +1,76 @@
-@page "/admin/receipt-late-payment"
+@page "/admin/receiptlatepayment"
 
 @using Radzen
 @using Radzen.Blazor
+@using ppfc.DTO
 @attribute [Authorize]
+@inject HttpClient Http
 @inject NotificationService NotificationService
+@inject DialogService DialogService
 
+<RadzenNotification />
 
-<h4 class="mb-3">Receipt Late Payment</h4>
+<PageTitle>Receipt Late Payment</PageTitle>
 
-<div class="mb-3 d-flex justify-content-end">
-    <RadzenButton Icon="add_circle" Text="Add Row" Click="AddRow" ButtonStyle="ButtonStyle.Secondary" />
-</div>
-
-<RadzenDataGrid @ref="grid" TItem="InstallPercentRecord" Data="Records" EditMode="DataGridEditMode.Single"
-    AllowPaging="true" PageSize="10" AllowSorting="true" AllowFiltering="false"
-    PagerHorizontalAlign="HorizontalAlign.Right">
-    <Columns>
-        <RadzenDataGridColumn TItem="InstallPercentRecord" Property="InstallmentNo" Title="Installment No"
-            Width="160px">
-            <Template Context="r">@r.InstallmentNo</Template>
-            <EditTemplate Context="r">
-                <RadzenNumeric @bind-Value="editItem.InstallmentNo" Min="1" Style="width:100%" />
-            </EditTemplate>
-        </RadzenDataGridColumn>
-
-        <RadzenDataGridColumn TItem="InstallPercentRecord" Property="Percentage" Title="Percentage" Width="160px">
-            <Template Context="r">@r.Percentage</Template>
-            <EditTemplate Context="r">
-                <RadzenNumeric @bind-Value="editItem.Percentage" Min="0" Max="100" Style="width:100%" />
-            </EditTemplate>
-        </RadzenDataGridColumn>
-
-        <RadzenDataGridColumn TItem="InstallPercentRecord" Title="Actions" Width="180px">
-            <Template Context="r">
-                <RadzenButton Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
-                    Click="@(args => EditRow(r))" Style="margin-right:6px" />
-            </Template>
-
-            <EditTemplate Context="r">
-                <RadzenButton Icon="save" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Primary"
-                    Click="@(args => SaveRow(r))" Style="margin-right:6px" />
-                <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
-                    Click="@(args => DeleteRow(r))" Style="margin-right:6px" />
-                <RadzenButton Icon="close" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
-                    Click="@(args => CancelEdit(r))" />
-            </EditTemplate>
-        </RadzenDataGridColumn>
-    </Columns>
-</RadzenDataGrid>
-
-@code {
-    private RadzenDataGrid<InstallPercentRecord> grid;
-
-    // Sample initial data
-    private List<InstallPercentRecord> Records = new List<InstallPercentRecord>
+@if (IsLoading)
 {
-new InstallPercentRecord { Id = Guid.NewGuid().ToString(), InstallmentNo = 1, Percentage = 50 }
-};
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading Receipt Late Payments...</p>
+    </div>
+}
+else
+{
+    <div class="mb-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h3 class="mb-0">Receipt Late Payment</h3>
 
-    // Temporary edit model used during inline edit/add
-    private EditInstallPercentItem editItem = new EditInstallPercentItem();
+        </div>
+        <RadzenButton Icon="add_circle" Text="Add New" Click="AddNew" ButtonStyle="ButtonStyle.Secondary" />
+    </div>
 
-    // Adds a blank row and immediately puts it in edit mode
-    private async Task AddRow()
-    {
-        var newRow = new InstallPercentRecord
-        {
-            Id = Guid.NewGuid().ToString(),
-            InstallmentNo = 0,
-            Percentage = 0
-        };
+    <RadzenDataGrid @ref="grid" TItem="ReceiptLatePaymentDto" Data="@receiptLatePayments" EditMode="DataGridEditMode.Single"
+                    AllowPaging="true" PageSize="10" AllowSorting="true" AllowFiltering="false"
+                    PagerHorizontalAlign="HorizontalAlign.Right">
+        <Columns>
+            <RadzenDataGridColumn TItem="ReceiptLatePaymentDto" Property="Installment" Title="Installment No"
+                                  Width="160px">
+                <Template Context="r">@r.Installment</Template>
+                <EditTemplate Context="r">
+                    @if (r.IsNew)
+                    {
+                        <RadzenNumeric @bind-Value="r.Installment" Min="1" Style="width:100%" />
+                    }
+                    else
+                    {
+                        <span>@r.Installment</span>
+                    }
+                </EditTemplate>
+            </RadzenDataGridColumn>
 
-        Records.Insert(0, newRow);
-        await grid.Reload();
-        await Task.Yield();
-        grid.EditRow(newRow);
+            <RadzenDataGridColumn TItem="ReceiptLatePaymentDto" Property="Percentage" Title="Percentage" Width="160px">
+                <Template Context="r">@r.Percentage</Template>
+                <EditTemplate Context="r">
+                    <RadzenNumeric @bind-Value="r.Percentage" Min="0" Max="100" Style="width:100%" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
 
-        editItem = new EditInstallPercentItem(); // reset edit model
-    }
+            <RadzenDataGridColumn TItem="ReceiptLatePaymentDto" Title="Actions" Width="180px">
+                <Template Context="r">
+                    <RadzenButton Icon="edit" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                  Click="@(args => EditRow(r))" Style="margin-right:6px" />
+                    <RadzenButton Icon="delete" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Danger"
+                                  Click="@(args => DeleteRow(r))" Style="margin-right:6px" />
+                </Template>
 
-    // Begin editing existing row
-    private async Task EditRow(InstallPercentRecord row)
-    {
-        editItem = new EditInstallPercentItem
-        {
-            InstallmentNo = row.InstallmentNo,
-            Percentage = row.Percentage
-        };
+                <EditTemplate Context="r">
+                    <RadzenButton Icon="save" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Primary"
+                                  Click="@(args => SaveRow(r))" Style="margin-right:6px" />
+                    <RadzenButton Icon="close" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light"
+                                  Click="@(args => CancelEdit(r))" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 
-        grid.EditRow(row);
-        await Task.Yield();
-    }
-
-    // Save the edited or newly added row
-    private async Task SaveRow(InstallPercentRecord row)
-    {
-        // validation
-        if (!editItem.InstallmentNo.HasValue || editItem.InstallmentNo <= 0)
-        {
-            NotificationService.Notify(new NotificationMessage
-            {
-                Severity = NotificationSeverity.Warning,
-                Summary = "Validation",
-                Detail = "Installment No must be > 0.",
-                Duration = 3000
-            });
-            return;
-        }
-        if (!editItem.Percentage.HasValue || editItem.Percentage < 0 || editItem.Percentage > 100)
-        {
-            NotificationService.Notify(new NotificationMessage
-            {
-                Severity = NotificationSeverity.Warning,
-                Summary = "Validation",
-                Detail = "Percentage must be between 0 and 100.",
-                Duration = 3000
-            });
-            return;
-        }
-
-        // commit values
-        row.InstallmentNo = editItem.InstallmentNo.Value;
-        row.Percentage = editItem.Percentage.Value;
-
-        await grid.UpdateRow(row);
-        grid.CancelEditRow(row);
-        await grid.Reload();
-        StateHasChanged();
-
-        NotificationService.Notify(new NotificationMessage
-        {
-            Severity = NotificationSeverity.Success,
-            Summary = "Saved",
-            Detail
-        = "Row saved.",
-            Duration = 2500
-        });
-    }
-
-    private async Task CancelEdit(InstallPercentRecord row)
-    {
-        grid.CancelEditRow(row);
-
-        // if it was a freshly added blank row (InstallmentNo 0), remove it
-        if (row.InstallmentNo == 0 && row.Percentage == 0)
-        {
-            if (Records.Contains(row))
-            {
-                Records.Remove(row);
-                await grid.Reload();
-            }
-        }
-
-        StateHasChanged();
-    }
-
-    private async Task DeleteRow(InstallPercentRecord row)
-    {
-        try { grid.CancelEditRow(row); } catch { }
-
-        if (Records.Contains(row))
-        {
-            Records.Remove(row);
-            await grid.Reload();
-            StateHasChanged();
-
-            NotificationService.Notify(new NotificationMessage
-            {
-                Severity = NotificationSeverity.Info,
-                Summary = "Deleted",
-                Detail =
-            "Row deleted.",
-                Duration = 2500
-            });
-        }
-    }
-
-    // Models
-    public class InstallPercentRecord
-    {
-        public string Id { get; set; }
-        public int InstallmentNo { get; set; }
-        public int Percentage { get; set; }
-    }
-
-    public class EditInstallPercentItem
-    {
-        public int? InstallmentNo { get; set; }
-        public int? Percentage { get; set; }
-    }
 }

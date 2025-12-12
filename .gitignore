@@ -396,3 +396,14 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+ppfc.web/obj/Debug/net8.0/staticwebassets.development.json
+/ppfc.web/obj
+/ppfc.web/obj
+/ppfc.API/bin
+/ppfc.API/bin
+/ppfc.API/bin
+/ppfc.API/obj
+ppfc.API/obj/Debug/net8.0/apphost.exe
+ppfc.API/bin/Debug/net8.0/ppfc.API.dll
+ppfc.API/bin/Debug/net8.0/ppfc.API.dll
+ppfc.API/bin/Debug/net8.0/ppfc.DTO.dll

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.AspNetCore.Components.Web;
 using ppfc.DTO;
 using ppfc.web.Helpers;
 using static System.Net.WebRequestMethods;
@@ -10,13 +11,16 @@ namespace ppfc.web.Pages
 {
     public partial class Login
     {
-        [Inject] private ProtectedSessionStorage SessionStorage { get; set; }
+        [Inject] private ProtectedLocalStorage SessionStorage { get; set; }
         [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; }
         [Inject] private NavigationManager Navigation { get; set; }
         [Inject] protected AppNotifier Notifier { get; set; } = default!;
+        [Inject] UserContext UserContext { get; set; }
 
 
         LoginRequestDto loginData = new();
+        private List<NewsDto> news = new();
+
         string errorMessage;
         public bool ShowPassword = false;
         public bool IsSubmitting = false;
@@ -27,6 +31,7 @@ namespace ppfc.web.Pages
 
             try
             {
+                news = await Http.GetFromJsonAsync<List<NewsDto>>("Login/GetNews");
                 await Http.PostAsync("Login/LoadMethods", null);
             }
             finally
@@ -39,6 +44,17 @@ namespace ppfc.web.Pages
 
         private async Task LoginAsync()
         {
+            if (string.IsNullOrWhiteSpace(loginData.UserName))
+            {
+                Notifier.Warning("Username is required.");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(loginData.Password))
+            {
+                Notifier.Warning("Password is required.");
+                return;
+            }
+
             errorMessage = null;
             IsSubmitting = true;
             StateHasChanged();
@@ -67,6 +83,13 @@ namespace ppfc.web.Pages
                         await SessionStorage.SetAsync("CompanyName", userInfo.CompanyName);
                         await SessionStorage.SetAsync("UserName", userInfo.UserName);
                         await SessionStorage.SetAsync("Privileges", userInfo.Privileges);
+
+                        // ✅ Store once globally for whole app
+                        UserContext.SetUser(
+                            userInfo.CompanyId,
+                            userInfo.UserId,
+                            userInfo.UserName
+                        );
 
                         // Attach JWT to HttpClient for future requests
                         Http.DefaultRequestHeaders.Authorization =

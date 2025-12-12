@@ -58,7 +58,7 @@
     }
 
     .card-auth {
-        max-width: 640px;
+/*        max-width: 640px;*/
         width: 100%;
     }
 
@@ -69,7 +69,7 @@
 
 .card-auth {
     border-radius: var(--radius);
-    background: #ffffff;
+    background: #ffffff url("../images/announcements.jpg") no-repeat bottom left;
     box-shadow: var(--shadow);
     overflow: hidden;
 }

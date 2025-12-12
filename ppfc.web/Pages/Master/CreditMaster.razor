@@ -1,0 +1,64 @@
+﻿@page "/master/credit"
+@using Radzen
+@using Radzen.Blazor
+@using ppfc.DTO
+@inject HttpClient Http
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenNotification />
+
+<PageTitle>Credit Master</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p>Loading credit accounts...</p>
+    </div>
+}
+else
+{
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div><h3 class="mb-0">Credit Master</h3></div>
+        <div>
+            <RadzenButton Icon="add_circle" Text="Add New" Click="@AddNew" ButtonStyle="ButtonStyle.Secondary" />
+        </div>
+    </div>
+
+    <RadzenDataGrid @ref="grid" Data="@credits" TItem="CreditDto"
+                    EditMode="DataGridEditMode.Single"
+                    AllowPaging="true" PageSize="6"
+                    AllowSorting="true"
+                    AllowFiltering="true"
+                    FilterMode="FilterMode.Simple"
+                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                    Style="min-width:520px;">
+        <Columns>
+            <RadzenDataGridColumn TItem="CreditDto" Property="CreditAccountName" Title="Credit Account Name" FilterPlaceholder="Search Debit Account">
+                <Template Context="item">
+                    @item.CreditAccountName
+                </Template>
+                <EditTemplate Context="item">
+                    <RadzenTextBox @bind-Value="item.CreditAccountName"  />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="CreditDto" Title="Actions" Width="120px" TextAlign="TextAlign.Center">
+                <Template Context="item">
+                    @if (grid != null && grid.IsRowInEditMode(item))
+                    {
+                        <RadzenButton Icon="save" Size="ButtonSize.Small" Click="@(args => SaveCredit(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => CancelEdit(item))" />
+                    }
+                    else
+                    {
+                        <RadzenButton Icon="edit" Size="ButtonSize.Small" Click="@(args => EditCredit(item))" Style="margin-right:6px;" />
+                        <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(args => DeleteCredit(item))" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+
